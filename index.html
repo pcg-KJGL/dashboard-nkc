@@ -1,0 +1,2908 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NKC Food Service | Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #0f172a; }
+    .custom-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- CABECERA FIJA MINIMALISTA -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
+    <div class="h-1.5 w-full bg-gradient-to-r from-blue-950 via-blue-900 to-orange-500"></div>
+    <div class="px-4 md:px-8 py-2.5 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+      
+      <!-- TÍTULO ÚNICO MINIMALISTA -->
+      <div class="flex items-center gap-2.5">
+        <h1 class="text-xl md:text-2xl font-black tracking-tight text-blue-950">NKC FOOD SERVICE</h1>
+        <span class="text-orange-500 font-light text-2xl">|</span>
+        <span class="text-slate-700 font-bold text-xl md:text-2xl tracking-wide">Intelligence</span>
+      </div>
+
+      <!-- PESTAÑAS Y FILTROS GLOBALES -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        <nav class="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200/80">
+          <button onclick="cambiarPestana('resumen')" id="tab-resumen" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-blue-950 text-white shadow-xs transition">Resumen Multianual</button>
+          <button onclick="cambiarPestana('productos')" id="tab-productos" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-blue-950 transition">Análisis de Productos</button>
+          <button onclick="cambiarPestana('inteligencia')" id="tab-inteligencia" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-blue-950 transition">Inteligencia & Proyecciones</button>
+          <button onclick="cambiarPestana('auditoria')" id="tab-auditoria" class="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-blue-950 transition">Cajas & Pagos</button>
+        </nav>
+
+        <div class="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 p-1 rounded-xl">
+          <select id="filtro-cafeteria" onchange="programarActualizacion()" class="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-blue-950 font-bold outline-none focus:ring-2 focus:ring-orange-500">
+            <option value="TODAS">Todas las Cafeterías</option>
+            <option value="TV">Tomás Valle (Cajas 1,3)</option>
+            <option value="TALLER">Taller (Cajas 2,4)</option>
+          </select>
+
+          <!-- BOTONES DE AÑOS + PPTO: NARANJA = MARCADO, BLANCO = DESMARCADO -->
+          <div class="flex items-center gap-1 bg-slate-200/70 p-1 rounded-lg">
+            <span class="text-[10px] font-extrabold text-slate-600 uppercase px-1">Años:</span>
+            <button onclick="toggleAnio('2023')" id="btn-yr-2023" class="px-2 py-0.5 text-xs font-bold rounded transition bg-orange-600 text-white border border-orange-600">2023</button>
+            <button onclick="toggleAnio('2024')" id="btn-yr-2024" class="px-2 py-0.5 text-xs font-bold rounded transition bg-orange-600 text-white border border-orange-600">2024</button>
+            <button onclick="toggleAnio('2025')" id="btn-yr-2025" class="px-2 py-0.5 text-xs font-bold rounded transition bg-orange-600 text-white border border-orange-600">2025</button>
+            <button onclick="toggleAnio('2026')" id="btn-yr-2026" class="px-2 py-0.5 text-xs font-bold rounded transition bg-orange-600 text-white border border-orange-600">2026</button>
+            <button onclick="togglePPTO()" id="btn-ppto" class="px-2 py-0.5 text-xs font-extrabold rounded transition bg-white text-blue-950 border border-slate-300" title="Mostrar/Ocultar Línea de Presupuesto">PPTO</button>
+            <button onclick="setAniosPreset('TODOS')" class="px-1.5 py-0.5 text-[10px] text-blue-950 hover:text-orange-600 font-extrabold">Todos</button>
+          </div>
+
+          <select id="filtro-mes" onchange="onCambioMesGlobal()" class="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-blue-950 font-bold outline-none focus:ring-2 focus:ring-orange-500">
+            <option value="TODOS">Todos los Meses</option>
+            <option value="01">Enero</option>
+            <option value="02">Febrero</option>
+            <option value="03">Marzo</option>
+            <option value="04">Abril</option>
+            <option value="05">Mayo</option>
+            <option value="06">Junio</option>
+            <option value="07">Julio</option>
+            <option value="08">Agosto</option>
+            <option value="09">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>
+            <option value="12">Diciembre</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- PANTALLA DE CARGA -->
+  <div id="loader" class="my-auto py-28 flex flex-col items-center justify-center">
+    <div class="w-10 h-10 border-4 border-slate-200 border-t-orange-500 rounded-full animate-spin mb-3"></div>
+    <p class="text-sm font-bold text-blue-950">Procesando base analítica...</p>
+  </div>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div class="px-4 md:px-8 py-5 flex-1 flex flex-col">
+
+    <!-- ==================== PESTAÑA 1: RESUMEN MULTIANUAL ==================== -->
+    <main id="seccion-resumen" class="hidden flex-1 space-y-5">
+      
+      <!-- 6 TARJETAS KPIS COMPACTAS CON CORTE DIARIO EXACTO -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+        <div class="bg-white border-l-4 border-l-purple-600 border border-slate-200 px-3.5 py-2.5 rounded-xl shadow-xs">
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">VENTAS 2023</p>
+            <span id="badge-corte-23" class="text-[9px] font-bold text-purple-800 bg-purple-50 px-1.5 py-0.5 rounded">1 Ene - Hoy</span>
+          </div>
+          <h3 id="kpi-v2023" class="text-base md:text-lg font-black mt-0.5 text-slate-800">S/ 0.00</h3>
+        </div>
+
+        <div class="bg-white border-l-4 border-l-emerald-600 border border-slate-200 px-3.5 py-2.5 rounded-xl shadow-xs">
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">VENTAS 2024</p>
+            <span id="badge-corte-24" class="text-[9px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded">1 Ene - Hoy</span>
+          </div>
+          <h3 id="kpi-v2024" class="text-base md:text-lg font-black mt-0.5 text-slate-800">S/ 0.00</h3>
+        </div>
+
+        <div class="bg-white border-l-4 border-l-blue-900 border border-slate-200 px-3.5 py-2.5 rounded-xl shadow-xs">
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">VENTAS 2025</p>
+            <span id="badge-corte-25" class="text-[9px] font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded">1 Ene - Hoy</span>
+          </div>
+          <h3 id="kpi-v2025" class="text-base md:text-lg font-black mt-0.5 text-slate-800">S/ 0.00</h3>
+        </div>
+
+        <div class="bg-orange-50/50 border-l-4 border-l-orange-500 border border-orange-200 px-3.5 py-2.5 rounded-xl shadow-xs">
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] text-orange-900 font-black uppercase tracking-wider">VENTAS 2026</p>
+            <span id="badge-corte-26" class="text-[9px] font-bold text-orange-800 bg-orange-100 px-1.5 py-0.5 rounded">1 Ene - Hoy</span>
+          </div>
+          <h3 id="kpi-v2026" class="text-base md:text-lg font-black mt-0.5 text-orange-700">S/ 0.00</h3>
+        </div>
+
+        <div class="bg-white border-l-4 border-l-blue-700 border border-slate-200 px-3.5 py-2.5 rounded-xl shadow-xs">
+          <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">2026 VS 2025</p>
+          <div class="flex items-baseline gap-1.5 mt-0.5">
+            <h3 id="kpi-var-monto-25" class="text-sm md:text-base font-extrabold text-slate-900">+S/ 0</h3>
+            <span id="kpi-var-pct-25" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">+0.0%</span>
+          </div>
+        </div>
+
+        <div class="bg-white border-l-4 border-l-indigo-600 border border-slate-200 px-3.5 py-2.5 rounded-xl shadow-xs">
+          <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">2026 VS 2024</p>
+          <div class="flex items-baseline gap-1.5 mt-0.5">
+            <h3 id="kpi-var-monto-24" class="text-sm md:text-base font-extrabold text-slate-900">+S/ 0</h3>
+            <span id="kpi-var-pct-24" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">+0.0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRÁFICO 1: EVOLUCIÓN MULTIANUAL -->
+      <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+        <div class="flex flex-col xl:flex-row xl:items-center justify-between pb-3.5 border-b border-slate-100 gap-3">
+          <h3 id="titulo-grafico-lineas" class="text-lg font-extrabold text-blue-950">Evolución Multianual de Ventas</h3>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- 1. Desplegable TODAS las categorías deduplicadas -->
+            <div class="relative inline-block text-left">
+              <button onclick="toggleDropdown('dropdown-cat-resumen')" class="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-950 flex items-center gap-2 hover:bg-slate-100 transition">
+                <i data-lucide="layers" class="w-3.5 h-3.5 text-blue-900"></i>
+                <span id="label-cat-resumen">Categorías (Todas)</span>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+              </button>
+              <div id="dropdown-cat-resumen" class="hidden absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-3 max-h-80 overflow-y-auto custom-scroll">
+                <div class="flex justify-between items-center pb-2 border-b border-slate-100 mb-2">
+                  <span class="text-xs font-bold text-blue-950">Categorías de la Base</span>
+                  <div class="space-x-2">
+                    <button onclick="marcarTodasCategoriasResumen(true)" class="text-[10px] text-blue-700 font-bold hover:underline">Todas</button>
+                    <button onclick="marcarTodasCategoriasResumen(false)" class="text-[10px] text-orange-600 font-bold hover:underline">Limpiar</button>
+                  </div>
+                </div>
+                <div id="lista-checkboxes-resumen" class="space-y-1 text-xs text-slate-700"></div>
+              </div>
+            </div>
+
+            <!-- 2. Desplegable Multiselección de Productos -->
+            <div class="relative inline-block text-left">
+              <button onclick="toggleDropdown('dropdown-prod-resumen')" class="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold text-orange-700 flex items-center gap-2 hover:bg-slate-100 transition">
+                <i data-lucide="package" class="w-3.5 h-3.5 text-orange-500"></i>
+                <span id="label-prod-resumen">Productos (Todos)</span>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+              </button>
+              <div id="dropdown-prod-resumen" class="hidden absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-3 max-h-80 overflow-y-auto custom-scroll">
+                <div class="pb-2 border-b border-slate-100 mb-2">
+                  <input type="text" id="buscar-producto-resumen" onkeyup="filtrarListaProductosResumen()" placeholder="Buscar producto..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs outline-none focus:ring-2 focus:ring-orange-500 font-medium">
+                  <div class="flex justify-between items-center mt-2">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Marcar 1 o más</span>
+                    <div class="space-x-2">
+                      <button onclick="marcarTodosProductosResumen(true)" class="text-[10px] text-blue-700 font-bold hover:underline">Todos</button>
+                      <button onclick="marcarTodosProductosResumen(false)" class="text-[10px] text-orange-600 font-bold hover:underline">Limpiar</button>
+                    </div>
+                  </div>
+                </div>
+                <div id="lista-checkboxes-prod-resumen" class="space-y-1 text-xs text-slate-700"></div>
+              </div>
+            </div>
+
+            <!-- LEYENDA LIMPIA: SOLO AÑOS SELECCIONADOS -->
+            <div id="leyenda-lineas" class="flex flex-wrap items-center gap-3 text-xs font-bold"></div>
+          </div>
+        </div>
+
+        <div class="h-[420px] mt-4">
+          <canvas id="chart-lineas"></canvas>
+        </div>
+        
+        <!-- DIAGNÓSTICO OPERATIVO DINÁMICO SEGÚN AÑOS Y MESES SELECCIONADOS -->
+        <div class="mt-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-start gap-3">
+          <i data-lucide="activity" class="w-5 h-5 text-blue-900 mt-0.5 flex-shrink-0"></i>
+          <div class="text-xs md:text-sm text-slate-700 leading-relaxed space-y-1">
+            <strong class="text-blue-950 font-bold">Diagnóstico Operativo de la Serie de Tiempo:</strong>
+            <div id="insight-lineas-dinamico" class="space-y-1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRÁFICO 2: COMPARATIVA DINÁMICA POR CATEGORÍA -->
+      <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+        <div class="flex flex-col xl:flex-row xl:items-center justify-between pb-3.5 border-b border-slate-100 gap-3">
+          <h3 class="text-base font-extrabold text-blue-950">Comparativa Dinámica por Categoría</h3>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="cat-filtro-anios" onchange="actualizarComparativaCategorias()" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-blue-950 font-bold outline-none">
+              <option value="2025_2026">2025 vs 2026</option>
+              <option value="2024_2026">2024 vs 2026</option>
+              <option value="2023_2026">2023 vs 2026</option>
+              <option value="2024_2025">2024 vs 2025</option>
+              <option value="2023_2024">2023 vs 2024</option>
+              <option value="SOLO_2026">Solo 2026</option>
+              <option value="SOLO_2025">Solo 2025</option>
+              <option value="SOLO_2024">Solo 2024</option>
+              <option value="SOLO_2023">Solo 2023</option>
+              <option value="TODOS">Todos los Años (2023-2026)</option>
+            </select>
+
+            <select id="cat-filtro-mes" onchange="actualizarComparativaCategorias()" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-blue-950 font-bold outline-none">
+              <option value="TODOS">Todos los Meses</option>
+              <option value="01">Enero</option>
+              <option value="02">Febrero</option>
+              <option value="03">Marzo</option>
+              <option value="04">Abril</option>
+              <option value="05">Mayo</option>
+              <option value="06">Junio</option>
+              <option value="07">Julio</option>
+              <option value="08">Agosto</option>
+              <option value="09">Septiembre</option>
+              <option value="10">Octubre</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="h-80 mt-4">
+          <canvas id="chart-categorias-anual"></canvas>
+        </div>
+
+        <div class="mt-4 p-3.5 bg-blue-50/60 border border-blue-200 rounded-xl flex items-start gap-3">
+          <i data-lucide="bar-chart-2" class="w-5 h-5 text-blue-900 mt-0.5 flex-shrink-0"></i>
+          <div class="text-xs md:text-sm text-slate-700 leading-relaxed space-y-1 w-full">
+            <strong class="text-blue-950 font-bold">Evaluación Comercial por Categorías:</strong>
+            <div id="insight-categorias-dinamico" class="space-y-1"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==================== PESTAÑA 2: ANÁLISIS DE PRODUCTOS ==================== -->
+    <main id="seccion-productos" class="hidden flex-1 space-y-5">
+      
+      <!-- 10 PÍLDORAS DE CATEGORÍAS (CON "PLATOS CARTA") -->
+      <div class="flex flex-wrap items-center gap-2" id="contenedor-pills-productos"></div>
+
+      <!-- DOS COLUMNAS MATRICIALES CON COLUMNAS DE AÑOS DINÁMICAS -->
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+            <h3 class="text-sm font-extrabold text-blue-950">Top 20: Mayor Rotación (Unidades por Año)</h3>
+            <span class="px-2.5 py-0.5 bg-emerald-50 text-emerald-800 text-[11px] font-bold rounded-lg border border-emerald-200">Alta Demanda</span>
+          </div>
+          <div class="overflow-x-auto custom-scroll max-h-[450px]">
+            <table class="w-full text-left text-xs">
+              <thead id="thead-top-productos" class="text-slate-500 border-b border-slate-200 uppercase tracking-wider text-[10px] bg-slate-50 sticky top-0 font-bold"></thead>
+              <tbody id="tabla-top-productos-matriz" class="divide-y divide-slate-100 text-slate-700 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+            <h3 class="text-sm font-extrabold text-slate-900">Top 20: Menor Rotación (Unidades por Año)</h3>
+            <span class="px-2.5 py-0.5 bg-amber-50 text-amber-800 text-[11px] font-bold rounded-lg border border-amber-200">Bajo Movimiento</span>
+          </div>
+          <div class="overflow-x-auto custom-scroll max-h-[450px]">
+            <table class="w-full text-left text-xs">
+              <thead id="thead-bottom-productos" class="text-slate-500 border-b border-slate-200 uppercase tracking-wider text-[10px] bg-slate-50 sticky top-0 font-bold"></thead>
+              <tbody id="tabla-bottom-productos-matriz" class="divide-y divide-slate-100 text-slate-700 font-medium"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CURVA DE PARETO 80/20 AMPLIADA CON TEXTO HORIZONTAL -->
+      <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+          <h3 class="text-base font-extrabold text-blue-950">Curva de Pareto 80/20 (Concentración de Facturación)</h3>
+          <span class="px-3 py-1 bg-blue-50 text-blue-950 text-xs font-bold rounded-lg border border-blue-200">Regla 80/20</span>
+        </div>
+        <div class="h-80">
+          <canvas id="chart-pareto"></canvas>
+        </div>
+      </div>
+
+      <!-- EVOLUCIÓN HISTÓRICA DE PRECIOS UNITARIOS CON DESPLEGABLE ÚNICO -->
+      <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-3">
+          <h3 class="text-base font-extrabold text-blue-950">Evolución Histórica de Precios Unitarios (2023 – 2026)</h3>
+          
+          <div class="relative inline-block text-left">
+            <button onclick="toggleDropdown('dropdown-precio-productos')" class="bg-slate-50 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold text-blue-950 flex items-center gap-2 hover:bg-slate-100 transition">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-orange-500"></i>
+              <span id="label-precio-productos">Seleccionar Producto(s)</span>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+            </button>
+            <div id="dropdown-precio-productos" class="hidden absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-3 max-h-80 overflow-y-auto custom-scroll">
+              <div class="pb-2 border-b border-slate-100 mb-2">
+                <input type="text" id="input-buscar-precio" onkeyup="filtrarListaPrecioDropdown()" placeholder="Digita para buscar producto..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-orange-500 font-medium">
+                <div class="flex justify-between items-center mt-2">
+                  <span class="text-[10px] font-bold text-slate-400 uppercase">Marca 1 o más ítems</span>
+                  <button onclick="limpiarSeleccionPrecios()" class="text-[10px] text-orange-600 font-bold hover:underline">Limpiar selección</button>
+                </div>
+              </div>
+              <div id="lista-checkboxes-precio" class="space-y-1 text-xs text-slate-700"></div>
+            </div>
+          </div>
+        </div>
+        <div class="h-72 mt-4">
+          <canvas id="chart-precio-historico"></canvas>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==================== PESTAÑA 3: INTELIGENCIA & PROYECCIONES ==================== -->
+    <main id="seccion-inteligencia" class="hidden flex-1 space-y-5">
+      
+      <!-- BARRA DE FILTRO DE CATEGORÍAS PARA LOS 3 GRÁFICOS SUPERIORES -->
+      <div class="bg-white border border-slate-200/90 px-5 py-3 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-3">
+        <h3 class="text-sm font-extrabold text-blue-950">Comportamiento Operativo & Ticket Promedio</h3>
+        <div class="relative inline-block text-left">
+          <button onclick="toggleDropdown('dropdown-cat-intel')" class="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-950 flex items-center gap-2 hover:bg-slate-100 transition">
+            <i data-lucide="layers" class="w-3.5 h-3.5 text-orange-500"></i>
+            <span id="label-cat-intel">Categorías (Todas)</span>
+            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+          </button>
+          <div id="dropdown-cat-intel" class="hidden absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-3 max-h-80 overflow-y-auto custom-scroll">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-100 mb-2">
+              <span class="text-xs font-bold text-blue-950">Filtrar Categorías</span>
+              <div class="space-x-2">
+                <button onclick="marcarTodasCategoriasIntel(true)" class="text-[10px] text-blue-700 font-bold hover:underline">Todas</button>
+                <button onclick="marcarTodasCategoriasIntel(false)" class="text-[10px] text-orange-600 font-bold hover:underline">Limpiar</button>
+              </div>
+            </div>
+            <div id="lista-checkboxes-intel" class="space-y-1 text-xs text-slate-700"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 GRÁFICOS DINÁMICOS CON COMENTARIOS DE CONTEXTO -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+          <h3 class="text-sm font-extrabold text-blue-950">Mapa de Calor Operativo por Hora</h3>
+          <p id="sub-horas-dinamico" class="text-xs text-slate-500 mt-0.5 mb-3 font-medium">Calculando horario pico...</p>
+          <div class="h-60">
+            <canvas id="chart-horas"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+          <h3 class="text-sm font-extrabold text-blue-950">Distribución por Día de la Semana</h3>
+          <p id="sub-dias-dinamico" class="text-xs text-slate-500 mt-0.5 mb-3 font-medium">Calculando día líder...</p>
+          <div class="h-60">
+            <canvas id="chart-dias"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+          <h3 class="text-sm font-extrabold text-blue-950">Evolución del Ticket Promedio</h3>
+          <p id="sub-ticket-dinamico" class="text-xs text-slate-500 mt-0.5 mb-3 font-medium">Comparativa por transacción...</p>
+          <div class="h-60">
+            <canvas id="chart-ticket-promedio"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- MARKET BASKET ANALYSIS DINÁMICO -->
+      <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 mb-3 gap-2">
+          <div>
+            <h3 class="text-sm font-extrabold text-blue-950">Market Basket Analysis (Asociación Real en Boletas — Excluye Menús)</h3>
+            <p id="sub-basket-dinamico" class="text-xs text-slate-500 mt-0.5 font-medium">Analizando combinaciones reales en comprobantes...</p>
+          </div>
+          <span id="badge-basket-periodo" class="px-2.5 py-1 bg-orange-50 text-orange-700 text-xs font-bold rounded-lg border border-orange-200">Afinidad Real</span>
+        </div>
+        <div id="contenedor-market-basket" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3"></div>
+      </div>
+
+      <!-- 5 PROPUESTAS DE COMBOS DINÁMICOS -->
+      <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+          <div>
+            <h3 class="text-base font-extrabold text-blue-950">5 Propuestas de Combos Dinámicos por Estacionalidad y Demanda Real</h3>
+            <p id="sub-combos-dinamico" class="text-xs text-slate-500 mt-0.5 font-medium">Formuladas con los productos de mayor rotación del mes, año y cafetería seleccionados</p>
+          </div>
+          <span id="badge-estacionalidad" class="px-3 py-1 bg-blue-50 text-blue-950 text-xs font-bold rounded-lg border border-blue-200">Temporada</span>
+        </div>
+        <div id="contenedor-combos-dinamicos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4"></div>
+      </div>
+
+      <!-- MÓDULO PREDICTIVO MULTIANUAL (4 AÑOS POR MES Y POR DÍA) -->
+      <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+        <div class="flex flex-col xl:flex-row xl:items-center justify-between pb-4 border-b border-slate-100 gap-4">
+          <div>
+            <h3 class="text-base font-extrabold text-blue-950">Módulo Predictivo Multianual (4 Años) & Control de Presupuesto (PPTO)</h3>
+            <p id="sub-proj-dinamico" class="text-xs text-slate-500 mt-0.5 font-medium">Proyecciones y metas calculadas según la variación específica de cada mes y día en los 4 años</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="relative inline-block text-left">
+              <button onclick="toggleDropdown('dropdown-cat-proj')" class="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-2 hover:bg-slate-100 transition">
+                <i data-lucide="layers" class="w-3.5 h-3.5 text-orange-500"></i>
+                <span id="label-cat-proj">Cat. Proyección (10)</span>
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+              </button>
+              <div id="dropdown-cat-proj" class="hidden absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-3 max-h-80 overflow-y-auto custom-scroll">
+                <div class="flex justify-between items-center pb-2 border-b border-slate-100 mb-2">
+                  <span class="text-xs font-bold text-blue-950">Categorías para Proyectar</span>
+                  <div class="space-x-2">
+                    <button onclick="marcarTodasCategoriasProj(true)" class="text-[10px] text-blue-700 font-bold hover:underline">Todas</button>
+                    <button onclick="marcarTodasCategoriasProj(false)" class="text-[10px] text-orange-600 font-bold hover:underline">Limpiar</button>
+                  </div>
+                </div>
+                <div id="lista-checkboxes-proj" class="space-y-1.5 text-xs text-slate-700"></div>
+              </div>
+            </div>
+
+            <select id="proj-horizonte" onchange="calcularProyecciones()" class="bg-blue-50 border border-blue-300 rounded-lg px-2.5 py-1.5 text-xs text-blue-950 font-bold outline-none">
+              <optgroup label="Cierre 2026">
+                <option value="11_2026">Noviembre 2026</option>
+                <option value="12_2026">Diciembre 2026</option>
+                <option value="BIM_2026">Bimestre Nov-Dic 2026</option>
+              </optgroup>
+              <optgroup label="Año 2027 Completo">
+                <option value="ANIO_2027">Año 2027 Completo (Ene - Dic)</option>
+              </optgroup>
+              <optgroup label="Mes a Mes 2027">
+                <option value="01_2027">Enero 2027</option>
+                <option value="02_2027">Febrero 2027</option>
+                <option value="03_2027">Marzo 2027</option>
+                <option value="04_2027">Abril 2027</option>
+                <option value="05_2027">Mayo 2027</option>
+                <option value="06_2027">Junio 2027</option>
+                <option value="07_2027">Julio 2027</option>
+                <option value="08_2027">Agosto 2027</option>
+                <option value="09_2027">Septiembre 2027</option>
+                <option value="10_2027">Octubre 2027</option>
+                <option value="11_2027">Noviembre 2027</option>
+                <option value="12_2027">Diciembre 2027</option>
+              </optgroup>
+            </select>
+
+            <select id="proj-escenario" onchange="calcularProyecciones()" class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 font-bold outline-none">
+              <option value="YTD">Escenario Base (Tendencia Mensual 4 Años)</option>
+              <option value="CONSERVADOR">Escenario Conservador (-5%)</option>
+              <option value="OPTIMISTA">Escenario Optimista (+5%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 mt-4">
+          <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
+            <p class="text-[10px] text-slate-500 font-bold uppercase">PROMEDIO HISTÓRICO (4 AÑOS)</p>
+            <h4 id="proj-base-historica" class="text-lg font-black mt-0.5 text-slate-800">S/ 0.00</h4>
+            <p class="text-[10px] text-slate-400 mt-0.5 font-medium">Base estacional multianual</p>
+          </div>
+
+          <div class="bg-blue-50/60 border border-blue-200 p-3.5 rounded-xl">
+            <p class="text-[10px] text-blue-900 font-bold uppercase">PROYECCIÓN ESTADÍSTICA</p>
+            <h4 id="proj-monto-estimado" class="text-lg font-black mt-0.5 text-blue-950">S/ 0.00</h4>
+            <p id="proj-pct" class="text-[10px] text-emerald-700 font-bold mt-0.5">+0.0% vs histórico</p>
+          </div>
+
+          <div class="bg-rose-50/70 border-2 border-rose-400 p-3.5 rounded-xl shadow-2xs">
+            <div class="flex items-center justify-between">
+              <label for="input-ppto-manual" class="text-[10px] text-rose-950 font-black uppercase">META PPTO (S/)</label>
+              <button onclick="resetearPPTOMesActual()" id="btn-reset-ppto" class="hidden text-[9px] text-rose-700 font-bold hover:underline">Restaurar</button>
+            </div>
+            <div class="flex items-center gap-1 mt-1">
+              <span class="text-sm font-black text-rose-900">S/</span>
+              <input type="number" id="input-ppto-manual" oninput="guardarPPTOMesActual()" placeholder="Meta..." class="w-full bg-white border border-rose-300 rounded-lg px-2 py-0.5 text-base font-black text-rose-950 outline-none focus:ring-2 focus:ring-rose-600">
+            </div>
+            <p id="lbl-estado-ppto" class="text-[10px] text-rose-800 mt-1 font-semibold">Automático (editar para fijar)</p>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
+            <p class="text-[10px] text-slate-500 font-bold uppercase">META PROMEDIO (PPTO)</p>
+            <h4 id="proj-meta-diaria" class="text-lg font-black mt-0.5 text-orange-600">S/ 0.00</h4>
+            <p id="proj-sub-meta" class="text-[10px] text-slate-400 mt-0.5 font-medium">Promedio requerido</p>
+          </div>
+
+          <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
+            <p class="text-[10px] text-slate-500 font-bold uppercase">BRECHA PROY. VS PPTO</p>
+            <h4 id="proj-brecha" class="text-lg font-black mt-0.5 text-slate-800">S/ 0.00</h4>
+            <p id="proj-brecha-sub" class="text-[10px] text-slate-500 mt-0.5 font-medium">Diferencia esperada</p>
+          </div>
+        </div>
+
+        <div class="mt-5 pt-4 border-t border-slate-100">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+            <h4 id="titulo-grafico-proyeccion" class="text-sm font-extrabold text-blue-950">Curva Proyectada vs Presupuesto (PPTO)</h4>
+            <div class="flex items-center gap-4 text-xs font-bold">
+              <span class="flex items-center gap-1.5 text-blue-950"><span class="w-3 h-3 rounded-full bg-blue-900"></span> Proyección Estadística</span>
+              <span class="flex items-center gap-1.5 text-rose-800"><span class="w-4 h-0.5 border-t-2 border-dashed border-rose-600"></span> Presupuesto / Meta (PPTO)</span>
+            </div>
+          </div>
+          <div class="h-72">
+            <canvas id="chart-proyeccion-diaria"></canvas>
+          </div>
+        </div>
+
+        <div class="mt-4 p-3.5 bg-blue-50/50 border border-blue-200 rounded-xl flex items-start gap-3">
+          <i data-lucide="info" class="w-5 h-5 text-blue-900 mt-0.5 flex-shrink-0"></i>
+          <div class="text-xs md:text-sm text-slate-700 leading-relaxed">
+            <strong class="text-blue-950 font-bold">Sustento de Proyección y Distribución Presupuestal (4 Años):</strong>
+            <div id="insight-proyecciones" class="mt-1 space-y-1"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==================== PESTAÑA 4: CAJAS & PAGOS ==================== -->
+    <main id="seccion-auditoria" class="hidden flex-1 space-y-5">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+          <h3 class="text-base font-extrabold text-blue-950 mb-4">Facturación por Caja Física (01 a 04)</h3>
+          <div class="h-64">
+            <canvas id="chart-cajas"></canvas>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+          <h3 class="text-base font-extrabold text-blue-950 mb-4">Participación de Medios de Pago</h3>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="chart-pagos"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white border border-slate-200/90 p-5 rounded-2xl shadow-xs">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <h3 class="text-base font-extrabold text-blue-950">Productividad y Saturación por Caja (Tickets por Hora)</h3>
+          <span class="px-3 py-1 bg-orange-50 text-orange-700 text-xs font-bold rounded-lg border border-orange-200">Capacidad Operativa</span>
+        </div>
+        <div class="h-80">
+          <canvas id="chart-productividad-cajas"></canvas>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- MOTOR ANALÍTICO SQL DUCKDB-WASM -->
+  <script type="module">
+    import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.28.0/+esm';
+
+    Chart.register(ChartDataLabels);
+    Chart.defaults.set('plugins.datalabels', {
+      color: '#0f172a',
+      font: { weight: '700', size: 10 },
+      display: false
+    });
+
+    let db = null;
+    let conn = null;
+    let chartLineas = null;
+    let chartCatAnual = null;
+    let chartPareto = null;
+    let chartPrecioHist = null;
+    let chartHoras = null;
+    let chartDias = null;
+    let chartTicketProm = null;
+    let chartProjDiaria = null;
+    let chartCajas = null;
+    let chartPagos = null;
+    let chartProdCajas = null;
+
+    let pestanaActiva = 'resumen';
+    let dirtyTabs = { resumen: true, productos: true, inteligencia: true, auditoria: true };
+
+    let categoriaSeleccionadaPill = 'TODAS';
+    let aniosActivos = ['2023', '2024', '2025', '2026'];
+    let mostrarPPTO = false;
+
+    let pptoGuardadoPorMes = {};
+    try {
+      pptoGuardadoPorMes = JSON.parse(localStorage.getItem('nkc_ppto_mensual_v1') || '{}');
+    } catch (e) { pptoGuardadoPorMes = {}; }
+
+    const diezCategoriasCortas = [
+      'BEBIDAS',
+      'SÁNDWICHES',
+      'PLATOS CARTA',
+      'CALIENTES',
+      'GALLETAS',
+      'POSTRES',
+      'PASTELERÍA',
+      'MENÚ TV',
+      'MENÚ TALLER',
+      'ABARROTES'
+    ];
+
+    let todasCategoriasCrudas = [];
+    let todosLosProductos = [];
+    
+    let catsCrudasSeleccionadas = new Set();
+    let catsIntelSeleccionadas = new Set();
+    let prodsResumenSeleccionados = new Set();
+    let prodsPrecioSeleccionados = new Set();
+    let catsProjSeleccionadas = new Set(diezCategoriasCortas);
+
+    let maxMesGlobal2026 = 11;
+    let maxDiaGlobal2026 = 10;
+    let maxMMDD2026 = 1110;
+    let maxFechaTexto2026 = "10 Nov";
+    let debounceTimer = null;
+
+    window.programarActualizacion = function() {
+      dirtyTabs = { resumen: true, productos: true, inteligencia: true, auditoria: true };
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        renderPestanaActiva();
+      }, 120);
+    };
+
+    window.onCambioMesGlobal = function() {
+      const mesGlobal = document.getElementById('filtro-mes').value;
+      const selCatMes = document.getElementById('cat-filtro-mes');
+      if (selCatMes) selCatMes.value = mesGlobal;
+      programarActualizacion();
+    };
+
+    function etiquetaHorizontal(texto) {
+      if (!texto) return '';
+      const clean = texto.trim();
+      if (clean.length <= 13) return clean;
+      const palabras = clean.split(' ');
+      if (palabras.length === 1) return clean.substring(0, 13);
+      let l1 = '', l2 = '';
+      for (const p of palabras) {
+        if ((l1 + ' ' + p).trim().length <= 13) {
+          l1 = (l1 + ' ' + p).trim();
+        } else {
+          l2 = (l2 + ' ' + p).trim();
+        }
+      }
+      if (l2.length > 13) l2 = l2.substring(0, 12) + '.';
+      return l2 ? [l1, l2] : l1;
+    }
+
+    async function initDB() {
+      try {
+        const JSDELIVR_BUNDLES = duckdb.getJsDelivrBundles();
+        const bundle = await duckdb.selectBundle(JSDELIVR_BUNDLES);
+        const worker_url = URL.createObjectURL(
+          new Blob([`importScripts("${bundle.mainWorker}");`], { type: 'text/javascript' })
+        );
+        const worker = new Worker(worker_url);
+        const logger = new duckdb.ConsoleLogger();
+        db = new duckdb.AsyncDuckDB(logger, worker);
+        await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+        URL.revokeObjectURL(worker_url);
+
+        const res = await fetch('ventas_nkc.parquet', { cache: 'no-store' });
+        const buffer = await res.arrayBuffer();
+        await db.registerFileBuffer('ventas_nkc.parquet', new Uint8Array(buffer));
+        
+        conn = await db.connect();
+
+        await conn.query(`
+          CREATE TABLE ventas_mem AS 
+          WITH raw_parsed AS (
+            SELECT 
+              TRIM(COALESCE(Caja, '')) AS Caja,
+              TRIM(COALESCE(Cafeteria_Asignada, '')) AS Cafeteria_Asignada,
+              TRIM(COALESCE("Num. doc", '')) AS Num_Doc,
+              UPPER(TRIM(COALESCE(Categoria, ''))) AS Cat_Norm,
+              TRIM(SPLIT_PART(COALESCE(Producto, ''), ':', 1)) AS Prod_Clean,
+              COALESCE(TRY_CAST("Venta (excl. impuestos)" AS DOUBLE), 0.0) AS Venta_Neta,
+              COALESCE(TRY_CAST(Cantidad AS DOUBLE), 0.0) AS Cantidad,
+              COALESCE(TRY_CAST(Precio AS DOUBLE), 0.0) AS Precio,
+              COALESCE(TRY_CAST("Efectivo Soles" AS DOUBLE), 0.0) AS Efectivo,
+              COALESCE(TRY_CAST(Yape AS DOUBLE), 0.0) AS Yape,
+              COALESCE(TRY_CAST(PLIN AS DOUBLE), 0.0) AS Plin,
+              COALESCE(TRY_CAST(CULQUI AS DOUBLE), 0.0) AS Culqui,
+              COALESCE(
+                TRY_CAST(Fecha AS DATE),
+                TRY_STRPTIME(SPLIT_PART(TRIM(CAST(Fecha AS VARCHAR)), ' ', 1), '%d/%m/%Y'),
+                TRY_STRPTIME(SPLIT_PART(TRIM(CAST(Fecha AS VARCHAR)), ' ', 1), '%Y-%m-%d'),
+                TRY_STRPTIME(SPLIT_PART(TRIM(CAST(Fecha AS VARCHAR)), ' ', 1), '%d-%m-%Y'),
+                TRY_STRPTIME(SPLIT_PART(TRIM(CAST(Fecha AS VARCHAR)), ' ', 1), '%Y/%m/%d')
+              ) AS Fecha_Date,
+              TRY_CAST(SUBSTR(TRIM(COALESCE(Hora, '')), 1, 2) AS INT) AS Hora_Int
+            FROM parquet_scan('ventas_nkc.parquet')
+          )
+          SELECT 
+            Caja, Cafeteria_Asignada, Num_Doc, Cat_Norm, Prod_Clean,
+            Venta_Neta, Cantidad, Precio, Efectivo, Yape, Plin, Culqui,
+            Fecha_Date, Hora_Int,
+            CAST(EXTRACT(YEAR FROM Fecha_Date) AS VARCHAR) AS Anio,
+            LPAD(CAST(EXTRACT(MONTH FROM Fecha_Date) AS VARCHAR), 2, '0') AS Mes,
+            LPAD(CAST(EXTRACT(DAY FROM Fecha_Date) AS VARCHAR), 2, '0') AS Dia,
+            CAST(EXTRACT(MONTH FROM Fecha_Date) * 100 + EXTRACT(DAY FROM Fecha_Date) AS INT) AS MMDD,
+            CASE 
+              WHEN Cat_Norm LIKE '%MENU%' OR UPPER(Prod_Clean) LIKE 'MENU %' OR UPPER(Prod_Clean) LIKE 'MENÚ %' OR UPPER(Prod_Clean) LIKE '%SUBVENCIONADO%' THEN 
+                CASE WHEN Caja IN ('Caja 02', 'Caja 04', 'Caja 2', 'Caja 4') OR Cat_Norm LIKE '%TALLER%' OR UPPER(Prod_Clean) LIKE '%TALLER%' THEN 'MENÚ TALLER' ELSE 'MENÚ TV' END
+              WHEN Cat_Norm LIKE '%ABARROTE%' OR Cat_Norm LIKE '%DESCARTABLE%' OR Cat_Norm LIKE '%UTIL%' OR Cat_Norm LIKE '%ARTICULO%' OR UPPER(Prod_Clean) LIKE '%DESCARTABLE%' OR UPPER(Prod_Clean) LIKE '%TAPER%' OR UPPER(Prod_Clean) LIKE '%VASO %' OR UPPER(Prod_Clean) LIKE '%BOLSA %' OR UPPER(Prod_Clean) LIKE '%CUBIERTO%' OR UPPER(Prod_Clean) LIKE '%SERVILLETA%' OR UPPER(Prod_Clean) LIKE '%LAPICERO%' OR UPPER(Prod_Clean) LIKE '%AFEITADORA%' THEN 'ABARROTES'
+              WHEN Cat_Norm LIKE '%PLATO%' OR Cat_Norm LIKE '%CARTA%' OR Cat_Norm LIKE '%SEGUNDO%' OR Cat_Norm LIKE '%CRIOLLO%' OR Cat_Norm LIKE '%SOPA%' OR Cat_Norm LIKE '%CALDO%' OR UPPER(Prod_Clean) LIKE 'PLATO %' OR UPPER(Prod_Clean) LIKE 'CALDO %' OR UPPER(Prod_Clean) LIKE 'ARROZ %' OR UPPER(Prod_Clean) LIKE 'LOMO %' OR UPPER(Prod_Clean) LIKE 'AJI DE GALLINA%' OR UPPER(Prod_Clean) LIKE 'TALLARIN%' THEN 'PLATOS CARTA'
+              WHEN Cat_Norm LIKE '%CALIENTE%' OR Cat_Norm LIKE '%CAFE%' OR Cat_Norm LIKE '%CAFÉ%' OR Cat_Norm LIKE '%INFUSION%' OR UPPER(Prod_Clean) LIKE 'CAFE %' OR UPPER(Prod_Clean) LIKE 'CAFÉ %' OR UPPER(Prod_Clean) LIKE 'INFUSION%' OR UPPER(Prod_Clean) LIKE 'INFUSIÓN%' OR UPPER(Prod_Clean) LIKE '%MANZANILLA%' OR UPPER(Prod_Clean) LIKE '%ANIS%' OR UPPER(Prod_Clean) LIKE '%ANÍS%' OR UPPER(Prod_Clean) LIKE '%EMOLIENTE%' OR UPPER(Prod_Clean) LIKE 'TE %' OR UPPER(Prod_Clean) LIKE 'TÉ %' THEN 'CALIENTES'
+              WHEN Cat_Norm LIKE '%BEBID%' OR Cat_Norm LIKE '%AGUA%' OR Cat_Norm LIKE '%GASEOSA%' OR Cat_Norm LIKE '%JUGO%' OR Cat_Norm LIKE '%REFRESCO%' OR UPPER(Prod_Clean) LIKE '%AGUA %' OR UPPER(Prod_Clean) LIKE 'CIELO %' OR UPPER(Prod_Clean) LIKE 'SAN LUIS%' OR UPPER(Prod_Clean) LIKE 'SAN MATEO%' OR UPPER(Prod_Clean) LIKE '%COCA COLA%' OR UPPER(Prod_Clean) LIKE '%INCA KOLA%' OR UPPER(Prod_Clean) LIKE '%SPRITE%' OR UPPER(Prod_Clean) LIKE '%FANTA%' OR UPPER(Prod_Clean) LIKE '%VOLT %' OR UPPER(Prod_Clean) LIKE '%SPORADE%' OR UPPER(Prod_Clean) LIKE '%GATORADE%' OR UPPER(Prod_Clean) LIKE '%FREE TEA%' OR UPPER(Prod_Clean) LIKE '%FRUGOS%' OR UPPER(Prod_Clean) LIKE '%PULP %' OR UPPER(Prod_Clean) LIKE '%JUGO %' THEN 'BEBIDAS'
+              WHEN Cat_Norm LIKE '%SANDWICH%' OR Cat_Norm LIKE '%SÁNDWICH%' OR Cat_Norm LIKE '%PANES%' OR UPPER(Prod_Clean) LIKE '%SANDWICH%' OR UPPER(Prod_Clean) LIKE '%SÁNDWICH%' OR UPPER(Prod_Clean) LIKE '%TRIPLE%' OR UPPER(Prod_Clean) LIKE '%CROISSANT%' OR UPPER(Prod_Clean) LIKE '%BUTIFARRA%' OR UPPER(Prod_Clean) LIKE '%HAMBURGUESA%' OR UPPER(Prod_Clean) LIKE 'PAN CON %' THEN 'SÁNDWICHES'
+              WHEN Cat_Norm LIKE '%PASTEL%' OR Cat_Norm LIKE '%PANADERIA%' OR Cat_Norm LIKE '%PANADERÍA%' OR Cat_Norm LIKE '%EMPANADA%' OR UPPER(Prod_Clean) LIKE '%EMPANADA%' OR UPPER(Prod_Clean) LIKE '%ENROLLADO%' OR UPPER(Prod_Clean) LIKE '%ALFAJOR%' OR UPPER(Prod_Clean) LIKE '%PASTEL%' THEN 'PASTELERÍA'
+              WHEN Cat_Norm LIKE '%POSTRE%' OR Cat_Norm LIKE '%TORTA%' OR Cat_Norm LIKE '%HELADO%' OR UPPER(Prod_Clean) LIKE '%POSTRE%' OR UPPER(Prod_Clean) LIKE '%TORTA%' OR UPPER(Prod_Clean) LIKE '%KEKE%' OR UPPER(Prod_Clean) LIKE '%PIE %' OR UPPER(Prod_Clean) LIKE '%PYE %' OR UPPER(Prod_Clean) LIKE '%MAZAMORRA%' OR UPPER(Prod_Clean) LIKE '%GELATINA%' OR UPPER(Prod_Clean) LIKE '%PUDIN%' THEN 'POSTRES'
+              WHEN Cat_Norm LIKE '%GALLETA%' OR Cat_Norm LIKE '%SNACK%' OR Cat_Norm LIKE '%CHOCOLATE%' OR Cat_Norm LIKE '%GOLOSINA%' OR UPPER(Prod_Clean) LIKE '%GALLETA%' OR UPPER(Prod_Clean) LIKE '%PRINGLES%' OR UPPER(Prod_Clean) LIKE '%CHOMP%' OR UPPER(Prod_Clean) LIKE '%SUBLIME%' OR UPPER(Prod_Clean) LIKE '%SODA %' OR UPPER(Prod_Clean) LIKE '%OREO%' THEN 'GALLETAS'
+              ELSE 'ABARROTES'
+            END AS Cat_Corta
+          FROM raw_parsed
+          WHERE Fecha_Date IS NOT NULL;
+        `);
+
+        const qMaxFecha = await conn.query(`
+          SELECT MAX(MMDD) as max_mmdd
+          FROM ventas_mem
+          WHERE Anio = '2026' AND Venta_Neta > 0 AND MMDD IS NOT NULL
+        `);
+        const rowF = qMaxFecha.toArray()[0];
+        if (rowF && rowF.max_mmdd) {
+          maxMMDD2026 = Number(rowF.max_mmdd);
+          maxMesGlobal2026 = Math.floor(maxMMDD2026 / 100);
+          maxDiaGlobal2026 = maxMMDD2026 % 100;
+          const nombresM = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Set", "Oct", "Nov", "Dic"];
+          maxFechaTexto2026 = `${maxDiaGlobal2026} ${nombresM[maxMesGlobal2026]}`;
+        }
+
+        await cargarCatalogos();
+        renderPillsProductos();
+        renderCheckboxesProj();
+
+        document.getElementById('loader').classList.add('hidden');
+        document.getElementById('seccion-resumen').classList.remove('hidden');
+        lucide.createIcons();
+        actualizarEstilosBotonesAnios();
+        await renderPestanaActiva();
+      } catch (err) {
+        document.getElementById('loader').innerHTML = `
+          <div class="text-rose-600 text-sm font-bold">Error al inicializar: ${err.message}</div>
+        `;
+      }
+    }
+
+    async function cargarCatalogos() {
+      const qCats = await conn.query(`
+        SELECT DISTINCT Cat_Norm FROM ventas_mem 
+        WHERE Cat_Norm != '' 
+          AND LENGTH(Cat_Norm) > 1 
+          AND TRY_CAST(Cat_Norm AS DOUBLE) IS NULL
+        ORDER BY Cat_Norm ASC
+      `);
+      todasCategoriasCrudas = qCats.toArray().map(r => r.Cat_Norm);
+      todasCategoriasCrudas.forEach(c => {
+        catsCrudasSeleccionadas.add(c);
+        catsIntelSeleccionadas.add(c);
+      });
+
+      const qProds = await conn.query(`
+        SELECT Prod_Clean, SUM(Cantidad) as vol
+        FROM ventas_mem
+        WHERE Prod_Clean != ''
+        GROUP BY Prod_Clean
+        ORDER BY vol DESC
+      `);
+      todosLosProductos = qProds.toArray().map(r => r.Prod_Clean);
+
+      if (todosLosProductos.length > 0) {
+        prodsPrecioSeleccionados.add(todosLosProductos[0]);
+      }
+
+      renderCheckboxesCatsResumen();
+      renderCheckboxesCatsIntel();
+      renderCheckboxesProdsResumen();
+      renderCheckboxesPrecio();
+    }
+
+    // --- DROPDOWNS ---
+    function renderCheckboxesCatsResumen() {
+      const cont = document.getElementById('lista-checkboxes-resumen');
+      cont.innerHTML = todasCategoriasCrudas.map(cat => {
+        const chk = catsCrudasSeleccionadas.has(cat);
+        return `
+          <label class="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer select-none">
+            <input type="checkbox" onchange="toggleCatCruda('${cat.replace(/'/g, "\\'")}', this.checked)" ${chk ? 'checked' : ''} class="rounded border-slate-300 text-blue-950">
+            <span class="truncate">${cat}</span>
+          </label>
+        `;
+      }).join('');
+      const tot = todasCategoriasCrudas.length;
+      const act = catsCrudasSeleccionadas.size;
+      document.getElementById('label-cat-resumen').innerText = act === tot ? `Categorías (${tot})` : `Categorías (${act}/${tot})`;
+    }
+
+    window.toggleCatCruda = function(cat, checked) {
+      if (checked) catsCrudasSeleccionadas.add(cat);
+      else catsCrudasSeleccionadas.delete(cat);
+      renderCheckboxesCatsResumen();
+      programarActualizacion();
+    };
+
+    window.marcarTodasCategoriasResumen = function(marcar) {
+      if (marcar) todasCategoriasCrudas.forEach(c => catsCrudasSeleccionadas.add(c));
+      else catsCrudasSeleccionadas.clear();
+      renderCheckboxesCatsResumen();
+      programarActualizacion();
+    };
+
+    function renderCheckboxesCatsIntel() {
+      const cont = document.getElementById('lista-checkboxes-intel');
+      cont.innerHTML = todasCategoriasCrudas.map(cat => {
+        const chk = catsIntelSeleccionadas.has(cat);
+        return `
+          <label class="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer select-none">
+            <input type="checkbox" onchange="toggleCatIntel('${cat.replace(/'/g, "\\'")}', this.checked)" ${chk ? 'checked' : ''} class="rounded border-slate-300 text-orange-600">
+            <span class="truncate">${cat}</span>
+          </label>
+        `;
+      }).join('');
+      const tot = todasCategoriasCrudas.length;
+      const act = catsIntelSeleccionadas.size;
+      document.getElementById('label-cat-intel').innerText = act === tot ? `Categorías (${tot})` : `Categorías (${act}/${tot})`;
+    }
+
+    window.toggleCatIntel = function(cat, checked) {
+      if (checked) catsIntelSeleccionadas.add(cat);
+      else catsIntelSeleccionadas.delete(cat);
+      renderCheckboxesCatsIntel();
+      renderInteligenciaComercial();
+    };
+
+    window.marcarTodasCategoriasIntel = function(marcar) {
+      if (marcar) todasCategoriasCrudas.forEach(c => catsIntelSeleccionadas.add(c));
+      else catsIntelSeleccionadas.clear();
+      renderCheckboxesCatsIntel();
+      renderInteligenciaComercial();
+    };
+
+    function renderCheckboxesProdsResumen(filtro = '') {
+      const cont = document.getElementById('lista-checkboxes-prod-resumen');
+      const term = filtro.toLowerCase();
+      const lista = term ? todosLosProductos.filter(p => p.toLowerCase().includes(term)) : todosLosProductos.slice(0, 150);
+
+      cont.innerHTML = lista.map(p => {
+        const chk = prodsResumenSeleccionados.has(p);
+        return `
+          <label class="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer select-none">
+            <input type="checkbox" onchange="toggleProdResumen('${p.replace(/'/g, "\\'")}', this.checked)" ${chk ? 'checked' : ''} class="rounded border-slate-300 text-orange-600">
+            <span class="truncate font-medium">${p}</span>
+          </label>
+        `;
+      }).join('');
+
+      const act = prodsResumenSeleccionados.size;
+      document.getElementById('label-prod-resumen').innerText = act === 0 ? 'Productos (Todos)' : `Productos (${act} selec.)`;
+    }
+
+    window.filtrarListaProductosResumen = function() {
+      renderCheckboxesProdsResumen(document.getElementById('buscar-producto-resumen').value);
+    };
+
+    window.toggleProdResumen = function(p, checked) {
+      if (checked) prodsResumenSeleccionados.add(p);
+      else prodsResumenSeleccionados.delete(p);
+      renderCheckboxesProdsResumen(document.getElementById('buscar-producto-resumen').value);
+      programarActualizacion();
+    };
+
+    window.marcarTodosProductosResumen = function(marcar) {
+      if (marcar) todosLosProductos.slice(0, 50).forEach(p => prodsResumenSeleccionados.add(p));
+      else prodsResumenSeleccionados.clear();
+      renderCheckboxesProdsResumen(document.getElementById('buscar-producto-resumen').value);
+      programarActualizacion();
+    };
+
+    function renderCheckboxesPrecio(filtro = '') {
+      const cont = document.getElementById('lista-checkboxes-precio');
+      const term = filtro.toLowerCase();
+      const lista = term ? todosLosProductos.filter(p => p.toLowerCase().includes(term)) : todosLosProductos.slice(0, 150);
+
+      cont.innerHTML = lista.map(p => {
+        const chk = prodsPrecioSeleccionados.has(p);
+        return `
+          <label class="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer select-none">
+            <input type="checkbox" onchange="toggleProdPrecio('${p.replace(/'/g, "\\'")}', this.checked)" ${chk ? 'checked' : ''} class="rounded border-slate-300 text-orange-600">
+            <span class="truncate font-medium">${p}</span>
+          </label>
+        `;
+      }).join('');
+
+      const act = prodsPrecioSeleccionados.size;
+      if (act === 0) document.getElementById('label-precio-productos').innerText = 'Seleccionar Producto(s)';
+      else if (act === 1) document.getElementById('label-precio-productos').innerText = Array.from(prodsPrecioSeleccionados)[0].substring(0, 22);
+      else document.getElementById('label-precio-productos').innerText = `${act} Productos Seleccionados`;
+    }
+
+    window.filtrarListaPrecioDropdown = function() {
+      renderCheckboxesPrecio(document.getElementById('input-buscar-precio').value);
+    };
+
+    window.toggleProdPrecio = function(p, checked) {
+      if (checked) prodsPrecioSeleccionados.add(p);
+      else prodsPrecioSeleccionados.delete(p);
+      renderCheckboxesPrecio(document.getElementById('input-buscar-precio').value);
+      renderPrecioHistorico();
+    };
+
+    window.limpiarSeleccionPrecios = function() {
+      prodsPrecioSeleccionados.clear();
+      renderCheckboxesPrecio(document.getElementById('input-buscar-precio').value);
+      renderPrecioHistorico();
+    };
+
+    function renderPillsProductos() {
+      const cont = document.getElementById('contenedor-pills-productos');
+      const opciones = ['TODAS', ...diezCategoriasCortas];
+      cont.innerHTML = opciones.map(cat => {
+        const activa = cat === categoriaSeleccionadaPill;
+        return `
+          <button onclick="filtrarCategoriaPill('${cat}')" 
+            class="px-3.5 py-1.5 rounded-full text-xs font-bold transition ${
+              activa ? 'bg-orange-600 text-white shadow-xs' : 'bg-white text-slate-700 hover:text-blue-950 border border-slate-200'
+            }">
+            ${cat}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderCheckboxesProj() {
+      const cont = document.getElementById('lista-checkboxes-proj');
+      cont.innerHTML = diezCategoriasCortas.map(cat => {
+        const chk = catsProjSeleccionadas.has(cat);
+        return `
+          <label class="flex items-center gap-2 p-1 hover:bg-slate-50 rounded cursor-pointer select-none">
+            <input type="checkbox" onchange="toggleCatProj('${cat}', this.checked)" ${chk ? 'checked' : ''} class="rounded border-slate-300 text-orange-600">
+            <span class="truncate font-semibold">${cat}</span>
+          </label>
+        `;
+      }).join('');
+      const act = catsProjSeleccionadas.size;
+      document.getElementById('label-cat-proj').innerText = act === diezCategoriasCortas.length ? 'Cat. Proyección (10)' : `Cat. Proyección (${act}/10)`;
+    }
+
+    window.toggleCatProj = function(cat, checked) {
+      if (checked) catsProjSeleccionadas.add(cat);
+      else catsProjSeleccionadas.delete(cat);
+      renderCheckboxesProj();
+      calcularProyecciones();
+    };
+
+    window.marcarTodasCategoriasProj = function(marcar) {
+      if (marcar) diezCategoriasCortas.forEach(c => catsProjSeleccionadas.add(c));
+      else catsProjSeleccionadas.clear();
+      renderCheckboxesProj();
+      calcularProyecciones();
+    };
+
+    window.toggleDropdown = function(id) {
+      document.getElementById(id).classList.toggle('hidden');
+    };
+
+    document.addEventListener('click', function(e) {
+      ['dropdown-cat-resumen', 'dropdown-prod-resumen', 'dropdown-precio-productos', 'dropdown-cat-proj', 'dropdown-cat-intel'].forEach(id => {
+        const drop = document.getElementById(id);
+        if (drop && !drop.contains(e.target) && !e.target.closest(`button[onclick*="${id}"]`)) {
+          drop.classList.add('hidden');
+        }
+      });
+    });
+
+    // --- BOTONES DE AÑOS Y PPTO ---
+    window.toggleAnio = function(anio) {
+      if (aniosActivos.includes(anio)) {
+        if (aniosActivos.length > 1) aniosActivos = aniosActivos.filter(a => a !== anio);
+      } else {
+        aniosActivos.push(anio);
+      }
+      actualizarEstilosBotonesAnios();
+      programarActualizacion();
+    };
+
+    window.togglePPTO = function() {
+      mostrarPPTO = !mostrarPPTO;
+      actualizarEstilosBotonesAnios();
+      if (pestanaActiva === 'resumen') renderChartLineasMultianual();
+    };
+
+    window.setAniosPreset = function(preset) {
+      if (preset === 'TODOS') aniosActivos = ['2023', '2024', '2025', '2026'];
+      actualizarEstilosBotonesAnios();
+      programarActualizacion();
+    };
+
+    function actualizarEstilosBotonesAnios() {
+      ['2023', '2024', '2025', '2026'].forEach(yr => {
+        const btn = document.getElementById(`btn-yr-${yr}`);
+        if (btn) {
+          const activo = aniosActivos.includes(yr);
+          btn.className = activo
+            ? "px-2 py-0.5 text-xs font-bold rounded transition bg-orange-600 text-white border border-orange-600 shadow-2xs"
+            : "px-2 py-0.5 text-xs font-bold rounded transition bg-white text-slate-700 border border-slate-300";
+        }
+      });
+      const btnPpto = document.getElementById('btn-ppto');
+      if (btnPpto) {
+        btnPpto.className = mostrarPPTO
+          ? "px-2 py-0.5 text-xs font-extrabold rounded transition bg-rose-700 text-white border border-rose-700 shadow-2xs"
+          : "px-2 py-0.5 text-xs font-extrabold rounded transition bg-white text-blue-950 border border-slate-300";
+      }
+    }
+
+    window.guardarPPTOMesActual = function() {
+      const horizonte = document.getElementById('proj-horizonte').value;
+      const val = Number(document.getElementById('input-ppto-manual').value);
+      if (val > 0) {
+        pptoGuardadoPorMes[horizonte] = val;
+      } else {
+        delete pptoGuardadoPorMes[horizonte];
+      }
+      localStorage.setItem('nkc_ppto_mensual_v1', JSON.stringify(pptoGuardadoPorMes));
+      dirtyTabs.resumen = true;
+      calcularProyecciones();
+    };
+
+    window.resetearPPTOMesActual = function() {
+      const horizonte = document.getElementById('proj-horizonte').value;
+      delete pptoGuardadoPorMes[horizonte];
+      localStorage.setItem('nkc_ppto_mensual_v1', JSON.stringify(pptoGuardadoPorMes));
+      dirtyTabs.resumen = true;
+      calcularProyecciones();
+    };
+
+    // --- CONSTRUCTORES SQL RÁPIDOS ---
+    function sqlCafeteria() {
+      const cafe = document.getElementById('filtro-cafeteria').value;
+      if (cafe === 'TV') return `(Cafeteria_Asignada LIKE '%TV%' OR Caja IN ('Caja 01', 'Caja 03', 'Caja 1', 'Caja 3'))`;
+      if (cafe === 'TALLER') return `(Cafeteria_Asignada LIKE '%Taller%' OR Caja IN ('Caja 02', 'Caja 04', 'Caja 2', 'Caja 4'))`;
+      return '1=1';
+    }
+
+    function sqlMes() {
+      const mes = document.getElementById('filtro-mes').value;
+      return mes === 'TODOS' ? '1=1' : `Mes = '${mes}'`;
+    }
+
+    function sqlAniosActivos() {
+      return `Anio IN (${aniosActivos.map(a => `'${a}'`).join(',')})`;
+    }
+
+    function sqlFiltroResumen() {
+      let sql = "";
+      if (catsCrudasSeleccionadas.size < todasCategoriasCrudas.length) {
+        if (catsCrudasSeleccionadas.size === 0) return 'AND 1=0';
+        const inList = Array.from(catsCrudasSeleccionadas).map(c => `'${c.replace(/'/g, "''")}'`).join(',');
+        sql += ` AND Cat_Norm IN (${inList})`;
+      }
+      if (prodsResumenSeleccionados.size > 0) {
+        const inProds = Array.from(prodsResumenSeleccionados).map(p => `'${p.replace(/'/g, "''")}'`).join(',');
+        sql += ` AND Prod_Clean IN (${inProds})`;
+      }
+      return sql;
+    }
+
+    function sqlFiltroIntel() {
+      if (catsIntelSeleccionadas.size === todasCategoriasCrudas.length) return '';
+      if (catsIntelSeleccionadas.size === 0) return 'AND 1=0';
+      const inList = Array.from(catsIntelSeleccionadas).map(c => `'${c.replace(/'/g, "''")}'`).join(',');
+      return `AND Cat_Norm IN (${inList})`;
+    }
+
+    // ==================== MOTOR MULTIANUAL DE 4 AÑOS CON TASAS ESPECÍFICAS POR MES ====================
+    async function obtenerModelo4Anios(filtroCafe, filtroExtraSQL) {
+      // 1. Ventas YTD globales para referencia de meses futuros aún no iniciados en 2026 (ej. Diciembre)
+      const qYTD = await conn.query(`
+        SELECT 
+          SUM(CASE WHEN Anio = '2023' AND MMDD <= ${maxMMDD2026} THEN Venta_Neta ELSE 0 END) as y23,
+          SUM(CASE WHEN Anio = '2024' AND MMDD <= ${maxMMDD2026} THEN Venta_Neta ELSE 0 END) as y24,
+          SUM(CASE WHEN Anio = '2025' AND MMDD <= ${maxMMDD2026} THEN Venta_Neta ELSE 0 END) as y25,
+          SUM(CASE WHEN Anio = '2026' AND MMDD <= ${maxMMDD2026} THEN Venta_Neta ELSE 0 END) as y26
+        FROM ventas_mem WHERE ${filtroCafe} ${filtroExtraSQL}
+      `);
+      const rY = qYTD.toArray()[0];
+      const y23 = Number(rY?.y23) || 0;
+      const y24 = Number(rY?.y24) || 0;
+      const y25 = Number(rY?.y25) || 0;
+      const y26 = Number(rY?.y26) || 0;
+
+      const g24_23_ytd = y23 > 0 ? (y24 - y23) / y23 : 0.04;
+      const g25_24_ytd = y24 > 0 ? (y25 - y24) / y24 : 0.06;
+      const g26_25_ytd = y25 > 0 ? (y26 - y25) / y25 : 0.05;
+      const tasaGlobalYTD = (g24_23_ytd * 0.15) + (g25_24_ytd * 0.25) + (g26_25_ytd * 0.60);
+
+      // 2. Ventas mes a mes de los 4 años (incluyendo corte homogéneo para el mes actual incompleto)
+      const qMesesDetalle = await conn.query(`
+        SELECT Mes,
+          SUM(CASE WHEN Anio = '2023' THEN Venta_Neta ELSE 0 END) as m23,
+          SUM(CASE WHEN Anio = '2024' THEN Venta_Neta ELSE 0 END) as m24,
+          SUM(CASE WHEN Anio = '2025' THEN Venta_Neta ELSE 0 END) as m25,
+          SUM(CASE WHEN Anio = '2026' THEN Venta_Neta ELSE 0 END) as m26,
+          SUM(CASE WHEN Anio = '2023' AND MMDD <= ${maxMMDD2026} THEN Venta_Neta ELSE 0 END) as p23,
+          SUM(CASE WHEN Anio = '2024' AND MMDD <= ${maxMMDD2026} THEN Venta_Neta ELSE 0 END) as p24,
+          SUM(CASE WHEN Anio = '2025' AND MMDD <= ${maxMMDD2026} THEN Venta_Neta ELSE 0 END) as p25
+        FROM ventas_mem
+        WHERE ${filtroCafe} ${filtroExtraSQL} AND Mes != ''
+        GROUP BY Mes ORDER BY Mes ASC
+      `);
+
+      const promMes4Y = {};
+      const tasaPorMes = {};
+      const detalleMes4Y = {};
+      let sumaAnual4Y = 0;
+
+      const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+      qMesesDetalle.toArray().forEach(r => {
+        const cod = r.Mes;
+        const mNum = parseInt(cod, 10);
+        const m23 = Number(r.m23) || 0;
+        const m24 = Number(r.m24) || 0;
+        const m25 = Number(r.m25) || 0;
+        const m26 = Number(r.m26) || 0;
+
+        const g24_23 = m23 > 0 ? clamp((m24 - m23) / m23, -0.35, 0.50) : g24_23_ytd;
+        const g25_24 = m24 > 0 ? clamp((m25 - m24) / m24, -0.35, 0.50) : g25_24_ytd;
+        let g26_25 = g26_25_ytd;
+        let tasaMes = tasaGlobalYTD;
+        let promBase = 0;
+
+        if (mNum < maxMesGlobal2026) {
+          // Meses cerrados en los 4 años (Ene - Oct)
+          g26_25 = m25 > 0 ? clamp((m26 - m25) / m25, -0.35, 0.50) : g26_25_ytd;
+          const cagrM = (m23 > 0 && m26 > 0) ? clamp(Math.pow(m26 / m23, 1 / 3) - 1, -0.25, 0.40) : g26_25;
+          tasaMes = (g24_23 * 0.15) + (g25_24 * 0.25) + (g26_25 * 0.40) + (cagrM * 0.20);
+          const vals = [m23, m24, m25, m26].filter(v => v > 0);
+          promBase = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 115000;
+        } else if (mNum === maxMesGlobal2026) {
+          // Mes en curso (Noviembre: comparar días transcurridos 1..10 en los 4 años)
+          const p25 = Number(r.p25) || 0;
+          g26_25 = p25 > 0 ? clamp((m26 - p25) / p25, -0.35, 0.50) : g26_25_ytd;
+          tasaMes = (g24_23 * 0.20) + (g25_24 * 0.30) + (g26_25 * 0.50);
+          const vals = [m23, m24, m25].filter(v => v > 0);
+          promBase = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 115000;
+        } else {
+          // Mes futuro aún sin registros en 2026 (Diciembre)
+          tasaMes = (g24_23 * 0.25) + (g25_24 * 0.35) + (g26_25_ytd * 0.40);
+          const vals = [m23, m24, m25].filter(v => v > 0);
+          promBase = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 115000;
+        }
+
+        tasaPorMes[cod] = clamp(tasaMes, -0.25, 0.45);
+        promMes4Y[cod] = promBase;
+        detalleMes4Y[cod] = { m23, m24, m25, m26, g24_23, g25_24, g26_25, tasaMes: tasaPorMes[cod] };
+        sumaAnual4Y += promBase;
+      });
+
+      const pesosMes4Y = {};
+      for (let i = 1; i <= 12; i++) {
+        const cod = String(i).padStart(2, '0');
+        if (tasaPorMes[cod] === undefined) tasaPorMes[cod] = tasaGlobalYTD;
+        if (promMes4Y[cod] === undefined) promMes4Y[cod] = (sumaAnual4Y / 12) || 115000;
+        pesosMes4Y[cod] = sumaAnual4Y > 0 ? (promMes4Y[cod] / sumaAnual4Y) : (1 / 12);
+      }
+
+      return { y23, y24, y25, y26, g24_23_ytd, g25_24_ytd, g26_25_ytd, tasaGlobalYTD, tasaPorMes, promMes4Y, pesosMes4Y, detalleMes4Y, sumaAnual4Y };
+    }
+
+    // ==================== RENDERIZACIÓN POR PESTAÑA ACTIVA ====================
+    async function renderPestanaActiva() {
+      if (pestanaActiva === 'resumen' && dirtyTabs.resumen) {
+        await cargarResumen();
+        dirtyTabs.resumen = false;
+      } else if (pestanaActiva === 'productos' && dirtyTabs.productos) {
+        await Promise.all([renderProductosMatriz(), renderParetoDinamico(), renderPrecioHistorico()]);
+        dirtyTabs.productos = false;
+      } else if (pestanaActiva === 'inteligencia' && dirtyTabs.inteligencia) {
+        await Promise.all([renderInteligenciaComercial(), renderMarketBasket(), generarCombosDinamicosDesdeBase(), calcularProyecciones()]);
+        dirtyTabs.inteligencia = false;
+      } else if (pestanaActiva === 'auditoria' && dirtyTabs.auditoria) {
+        await renderAuditoriaCajas();
+        dirtyTabs.auditoria = false;
+      }
+    }
+
+    async function cargarResumen() {
+      const filtroCafe = sqlCafeteria();
+      const filtroMes = sqlMes();
+      const filtroRes = sqlFiltroResumen();
+      const mesVal = document.getElementById('filtro-mes').value;
+
+      let filtroCorteDiario = "";
+      if (mesVal === 'TODOS') {
+        filtroCorteDiario = `AND MMDD <= ${maxMMDD2026}`;
+        const etq = `1 Ene - ${maxFechaTexto2026}`;
+        ['23', '24', '25', '26'].forEach(y => document.getElementById(`badge-corte-${y}`).innerText = etq);
+      } else {
+        const mesInt = parseInt(mesVal, 10);
+        const corteDia = (mesInt === maxMesGlobal2026) ? `AND MMDD <= ${maxMMDD2026}` : '';
+        filtroCorteDiario = `AND Mes = '${mesVal}' ${corteDia}`;
+        const etq = (mesInt === maxMesGlobal2026) ? `1 - ${maxFechaTexto2026}` : `Mes ${mesVal}`;
+        ['23', '24', '25', '26'].forEach(y => document.getElementById(`badge-corte-${y}`).innerText = etq);
+      }
+
+      const qVentas = await conn.query(`
+        SELECT 
+          SUM(CASE WHEN Anio = '2023' ${filtroCorteDiario} THEN Venta_Neta ELSE 0 END) as v23,
+          SUM(CASE WHEN Anio = '2024' ${filtroCorteDiario} THEN Venta_Neta ELSE 0 END) as v24,
+          SUM(CASE WHEN Anio = '2025' ${filtroCorteDiario} THEN Venta_Neta ELSE 0 END) as v25,
+          SUM(CASE WHEN Anio = '2026' AND ${filtroMes} THEN Venta_Neta ELSE 0 END) as v26
+        FROM ventas_mem WHERE ${filtroCafe} ${filtroRes}
+      `);
+      const rowV = qVentas.toArray()[0];
+      const v23 = Number(rowV?.v23) || 0;
+      const v24 = Number(rowV?.v24) || 0;
+      const v25 = Number(rowV?.v25) || 0;
+      const v26 = Number(rowV?.v26) || 0;
+
+      document.getElementById('kpi-v2023').innerText = `S/ ${v23.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('kpi-v2024').innerText = `S/ ${v24.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('kpi-v2025').innerText = `S/ ${v25.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('kpi-v2026').innerText = `S/ ${v26.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+      const dif25 = v26 - v25;
+      const pct25 = v25 > 0 ? (dif25 / v25) * 100 : 0;
+      document.getElementById('kpi-var-monto-25').innerText = `${dif25 >= 0 ? '+' : ''}S/ ${Math.round(dif25).toLocaleString('es-PE')}`;
+      const elPct25 = document.getElementById('kpi-var-pct-25');
+      elPct25.innerText = `${pct25 >= 0 ? '+' : ''}${pct25.toFixed(1)}%`;
+      elPct25.className = pct25 >= 0 ? "text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800" : "text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-800";
+
+      const dif24 = v26 - v24;
+      const pct24 = v24 > 0 ? (dif24 / v24) * 100 : 0;
+      document.getElementById('kpi-var-monto-24').innerText = `${dif24 >= 0 ? '+' : ''}S/ ${Math.round(dif24).toLocaleString('es-PE')}`;
+      const elPct24 = document.getElementById('kpi-var-pct-24');
+      elPct24.innerText = `${pct24 >= 0 ? '+' : ''}${pct24.toFixed(1)}%`;
+      elPct24.className = pct24 >= 0 ? "text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800" : "text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-800";
+
+      await Promise.all([renderChartLineasMultianual(), actualizarComparativaCategorias()]);
+    }
+
+    // ==================== GRÁFICO 1: CURVA SUAVE + ETIQUETAS SIN SUPERPOSICIÓN + COMENTARIOS GLOBALES ====================
+    async function renderChartLineasMultianual() {
+      const filtroCafe = sqlCafeteria();
+      const filtroMes = sqlMes();
+      const filtroRes = sqlFiltroResumen();
+      const mesVal = document.getElementById('filtro-mes').value;
+
+      const ctx = document.getElementById('chart-lineas').getContext('2d');
+      if (chartLineas) chartLineas.destroy();
+
+      const modelo4Y = await obtenerModelo4Anios(filtroCafe, filtroRes);
+      const mesesNom = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
+      const isMonthly = (mesVal === 'TODOS');
+
+      let datasetsFinales = [];
+      const leyenda = document.getElementById('leyenda-lineas');
+      leyenda.innerHTML = '';
+
+      if (isMonthly) {
+        const q = `
+          SELECT Mes,
+            SUM(CASE WHEN Anio = '2023' THEN Venta_Neta ELSE 0 END) as v23,
+            SUM(CASE WHEN Anio = '2024' THEN Venta_Neta ELSE 0 END) as v24,
+            SUM(CASE WHEN Anio = '2025' THEN Venta_Neta ELSE 0 END) as v25,
+            SUM(CASE WHEN Anio = '2026' THEN Venta_Neta ELSE 0 END) as v26,
+            SUM(CASE WHEN Anio IN ('2023', '2024', '2025') AND MMDD <= ${maxMMDD2026} THEN Venta_Neta ELSE 0 END) as hist_parcial,
+            SUM(CASE WHEN Anio IN ('2023', '2024', '2025') THEN Venta_Neta ELSE 0 END) as hist_total_3y
+          FROM ventas_mem WHERE ${filtroCafe} AND Mes != '' ${filtroRes}
+          GROUP BY Mes ORDER BY Mes ASC
+        `;
+        const res = (await conn.query(q)).toArray();
+        const m23 = {}, m24 = {}, m25 = {}, m26 = {}, mHistParcial = {}, mHistTotal3Y = {};
+        res.forEach(r => {
+          m23[r.Mes] = Number(r.v23)||0;
+          m24[r.Mes] = Number(r.v24)||0;
+          m25[r.Mes] = Number(r.v25)||0;
+          m26[r.Mes] = Number(r.v26)||0;
+          mHistParcial[r.Mes] = Number(r.hist_parcial)||0;
+          mHistTotal3Y[r.Mes] = Number(r.hist_total_3y)||0;
+        });
+
+        const idxMesActual = maxMesGlobal2026 - 1;
+        const codMesActual = String(maxMesGlobal2026).padStart(2, '0');
+        const diasDelMesActual = ['01','03','05','07','08','10','12'].includes(codMesActual) ? 31 : (codMesActual === '02' ? 28 : 30);
+        const fraccionMes = Math.min(1, maxDiaGlobal2026 / diasDelMesActual);
+
+        const realParcialMesActual = m26[codMesActual] || 0;
+        const avgHistMesActual = modelo4Y.promMes4Y[codMesActual] || 115000;
+        const tasaNov4Y = modelo4Y.tasaPorMes[codMesActual] || modelo4Y.tasaGlobalYTD;
+        const shareDiasTranscurridos = (mHistTotal3Y[codMesActual] > 0 && mHistParcial[codMesActual] > 0)
+          ? (mHistParcial[codMesActual] / mHistTotal3Y[codMesActual])
+          : fraccionMes;
+
+        const remanenteHistorico = avgHistMesActual * (1 - shareDiasTranscurridos);
+        const cierreProyMesActual = realParcialMesActual + (remanenteHistorico * (1 + tasaNov4Y));
+
+        const d26 = mesesNom.map((_, i) => {
+          const mNum = i + 1;
+          const cod = String(mNum).padStart(2, '0');
+          if (mNum < maxMesGlobal2026) return m26[cod] || null;
+          if (mNum === maxMesGlobal2026) return fraccionMes < 1 ? cierreProyMesActual : (m26[cod] || null);
+          const base4Y = modelo4Y.promMes4Y[cod] || 115000;
+          const tasaM = modelo4Y.tasaPorMes[cod] || modelo4Y.tasaGlobalYTD;
+          return base4Y * (1 + tasaM);
+        });
+
+        const d25 = mesesNom.map((_, i) => m25[String(i + 1).padStart(2, '0')] || null);
+        const d24 = mesesNom.map((_, i) => m24[String(i + 1).padStart(2, '0')] || null);
+        const d23 = mesesNom.map((_, i) => m23[String(i + 1).padStart(2, '0')] || null);
+
+        const sumaBase4Y = modelo4Y.sumaAnual4Y || 1400000;
+        const pptoAnualTotal = pptoGuardadoPorMes['ANIO_2027']
+          ? Number(pptoGuardadoPorMes['ANIO_2027'])
+          : sumaBase4Y * (1 + Math.max(modelo4Y.tasaGlobalYTD, 0.05));
+
+        const dPPTO = mesesNom.map((_, i) => {
+          const cod = String(i + 1).padStart(2, '0');
+          const key26 = `${cod}_2026`;
+          return pptoGuardadoPorMes[key26]
+            ? Number(pptoGuardadoPorMes[key26])
+            : pptoAnualTotal * modelo4Y.pesosMes4Y[cod];
+        });
+
+        // Alineación inteligente para evitar choques entre 2026 y 2025
+        const align26 = (ctx) => {
+          const v6 = d26[ctx.dataIndex] || 0;
+          const v5 = d25[ctx.dataIndex] || 0;
+          return (aniosActivos.includes('2025') && v5 > v6) ? 'bottom' : 'top';
+        };
+        const align25 = (ctx) => {
+          const v6 = d26[ctx.dataIndex] || 0;
+          const v5 = d25[ctx.dataIndex] || 0;
+          return (aniosActivos.includes('2026') && v5 > v6) ? 'top' : 'bottom';
+        };
+
+        if (aniosActivos.includes('2026')) {
+          leyenda.innerHTML += `<span class="flex items-center gap-1.5 text-orange-600 font-extrabold"><span class="w-3 h-3 rounded-full bg-orange-600"></span> 2026</span>`;
+          datasetsFinales.push({
+            label: '2026',
+            data: d26,
+            borderColor: '#ea580c',
+            backgroundColor: 'rgba(234, 88, 12, 0.08)',
+            borderWidth: 3.2,
+            tension: 0.35,
+            fill: true,
+            spanGaps: false,
+            segment: {
+              borderDash: (ctx) => ctx.p0DataIndex >= (idxMesActual - 1) ? [6, 5] : undefined,
+              borderColor: (ctx) => ctx.p0DataIndex >= (idxMesActual - 1) ? '#f97316' : '#ea580c'
+            },
+            pointBackgroundColor: (ctx) => ctx.dataIndex >= idxMesActual ? '#ffffff' : '#ea580c',
+            pointBorderColor: '#ea580c',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            datalabels: {
+              display: true,
+              align: align26,
+              offset: 6,
+              clamp: true,
+              backgroundColor: 'rgba(255, 255, 255, 0.94)',
+              borderColor: '#fed7aa',
+              borderWidth: 1,
+              borderRadius: 4,
+              padding: { top: 1.5, bottom: 1.5, left: 3.5, right: 3.5 },
+              formatter: (v, ctx) => {
+                if (!v) return '';
+                return ctx.dataIndex >= idxMesActual ? `Proy: ${(v/1000).toFixed(1)}k` : `${(v/1000).toFixed(1)}k`;
+              },
+              color: '#c2410c',
+              font: { weight: '800', size: 9 }
+            }
+          });
+        }
+
+        if (mostrarPPTO) {
+          leyenda.innerHTML += `<span class="flex items-center gap-1.5 text-rose-700 font-extrabold"><span class="w-3 h-3 rounded-full bg-rose-700"></span> PPTO</span>`;
+          datasetsFinales.push({
+            label: 'PPTO',
+            data: dPPTO,
+            borderColor: '#be123c',
+            borderDash: [5, 5],
+            borderWidth: 2.4,
+            tension: 0.35,
+            pointRadius: 3,
+            pointBackgroundColor: '#be123c',
+            datalabels: { display: false }
+          });
+        }
+
+        if (aniosActivos.includes('2025')) {
+          leyenda.innerHTML += `<span class="flex items-center gap-1.5 text-blue-900 font-bold"><span class="w-3 h-3 rounded-full bg-blue-900"></span> 2025</span>`;
+          datasetsFinales.push({
+            label: '2025',
+            data: d25,
+            borderColor: '#1e3a8a',
+            borderWidth: 2.5,
+            tension: 0.35,
+            pointBackgroundColor: '#1e3a8a',
+            pointRadius: 3.5,
+            datalabels: {
+              display: true,
+              align: align25,
+              offset: 6,
+              clamp: true,
+              backgroundColor: 'rgba(255, 255, 255, 0.92)',
+              borderColor: '#bfdbfe',
+              borderWidth: 1,
+              borderRadius: 4,
+              padding: { top: 1.5, bottom: 1.5, left: 3.5, right: 3.5 },
+              formatter: v => v ? `${(v/1000).toFixed(1)}k` : '',
+              color: '#1e3a8a',
+              font: { weight: '700', size: 9 }
+            }
+          });
+        }
+
+        if (aniosActivos.includes('2024')) {
+          const solo24 = !aniosActivos.includes('2026') && !aniosActivos.includes('2025');
+          leyenda.innerHTML += `<span class="flex items-center gap-1.5 text-emerald-700 font-bold"><span class="w-3 h-3 rounded-full bg-emerald-600"></span> 2024</span>`;
+          datasetsFinales.push({
+            label: '2024',
+            data: d24,
+            borderColor: '#059669',
+            borderWidth: 2,
+            tension: 0.35,
+            pointRadius: solo24 ? 3.5 : 0,
+            pointHoverRadius: 5,
+            datalabels: {
+              display: solo24,
+              align: 'top',
+              offset: 5,
+              backgroundColor: 'rgba(255, 255, 255, 0.92)',
+              borderColor: '#a7f3d0',
+              borderWidth: 1,
+              borderRadius: 4,
+              padding: { top: 1.5, bottom: 1.5, left: 3.5, right: 3.5 },
+              formatter: v => v ? `${(v/1000).toFixed(1)}k` : '',
+              color: '#065f46',
+              font: { weight: '700', size: 9 }
+            }
+          });
+        }
+
+        if (aniosActivos.includes('2023')) {
+          const solo23 = !aniosActivos.includes('2026') && !aniosActivos.includes('2025') && !aniosActivos.includes('2024');
+          leyenda.innerHTML += `<span class="flex items-center gap-1.5 text-purple-700 font-bold"><span class="w-3 h-3 rounded-full bg-purple-600"></span> 2023</span>`;
+          datasetsFinales.push({
+            label: '2023',
+            data: d23,
+            borderColor: '#7c3aed',
+            borderWidth: 2,
+            tension: 0.35,
+            pointRadius: solo23 ? 3.5 : 0,
+            pointHoverRadius: 5,
+            datalabels: {
+              display: solo23,
+              align: 'top',
+              offset: 5,
+              backgroundColor: 'rgba(255, 255, 255, 0.92)',
+              borderColor: '#ddd6fe',
+              borderWidth: 1,
+              borderRadius: 4,
+              padding: { top: 1.5, bottom: 1.5, left: 3.5, right: 3.5 },
+              formatter: v => v ? `${(v/1000).toFixed(1)}k` : '',
+              color: '#5b21b6',
+              font: { weight: '700', size: 9 }
+            }
+          });
+        }
+
+        generarComentarioSerieDinamico(
+          { '2023': d23, '2024': d24, '2025': d25, '2026': d26 },
+          mesesNom,
+          true,
+          'Anual',
+          modelo4Y.tasaGlobalYTD,
+          realParcialMesActual,
+          cierreProyMesActual
+        );
+
+        chartLineas = new Chart(ctx, {
+          type: 'line',
+          data: { labels: mesesNom, datasets: datasetsFinales },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const val = Number(ctx.raw || 0);
+                    if (ctx.dataset.label === '2026' && ctx.dataIndex === idxMesActual && fraccionMes < 1) {
+                      return `2026 (Proy. Cierre): S/ ${val.toLocaleString('es-PE', {minimumFractionDigits: 2})} | Real al ${maxFechaTexto2026}: S/ ${realParcialMesActual.toLocaleString('es-PE', {minimumFractionDigits: 2})}`;
+                    }
+                    if (ctx.dataset.label === '2026' && ctx.dataIndex > idxMesActual) {
+                      return `2026 (Proyectado): S/ ${val.toLocaleString('es-PE', {minimumFractionDigits: 2})}`;
+                    }
+                    return `${ctx.dataset.label}: S/ ${val.toLocaleString('es-PE', {minimumFractionDigits: 2})}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0, color: '#475569', font: { size: 10.5, weight: '700' } } },
+              y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', callback: v => `S/ ${(v/1000).toFixed(0)}k` }, grace: '18%' }
+            }
+          }
+        });
+
+      } else {
+        // VISTA DIARIA DE UN MES SELECCIONADO (CON ETIQUETAS PILL-BADGE SIN SUPERPOSICIÓN)
+        const mesInt = parseInt(mesVal, 10);
+        const nombreMesActivo = document.getElementById('filtro-mes').selectedOptions[0].text;
+        const numDias = ['01','03','05','07','08','10','12'].includes(mesVal) ? 31 : (mesVal === '02' ? 28 : 30);
+        const labelsDias = Array.from({length: numDias}, (_, i) => `Día ${i + 1}`);
+
+        const q = `
+          SELECT Dia,
+            SUM(CASE WHEN Anio = '2023' THEN Venta_Neta ELSE 0 END) as v23,
+            SUM(CASE WHEN Anio = '2024' THEN Venta_Neta ELSE 0 END) as v24,
+            SUM(CASE WHEN Anio = '2025' THEN Venta_Neta ELSE 0 END) as v25,
+            SUM(CASE WHEN Anio = '2026' THEN Venta_Neta ELSE 0 END) as v26
+          FROM ventas_mem WHERE ${filtroCafe} AND ${filtroMes} AND Dia != '' ${filtroRes}
+          GROUP BY Dia ORDER BY Dia ASC
+        `;
+        const res = (await conn.query(q)).toArray();
+        const m23 = {}, m24 = {}, m25 = {}, m26 = {};
+        res.forEach(r => {
+          m23[r.Dia] = Number(r.v23)||0;
+          m24[r.Dia] = Number(r.v24)||0;
+          m25[r.Dia] = Number(r.v25)||0;
+          m26[r.Dia] = Number(r.v26)||0;
+        });
+
+        const d23 = labelsDias.map((_, i) => m23[String(i + 1).padStart(2, '0')] || null);
+        const d24 = labelsDias.map((_, i) => m24[String(i + 1).padStart(2, '0')] || null);
+        const d25 = labelsDias.map((_, i) => m25[String(i + 1).padStart(2, '0')] || null);
+
+        const avgHistDia = labelsDias.map((_, i) => {
+          const cod = String(i + 1).padStart(2, '0');
+          const vals = [m23[cod], m24[cod], m25[cod]].filter(v => v > 0);
+          return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length) : 4000;
+        });
+
+        const tasaMesEspecifica = modelo4Y.tasaPorMes[mesVal] ?? modelo4Y.tasaGlobalYTD;
+        const diaCorte = (mesInt === maxMesGlobal2026) ? maxDiaGlobal2026 : (mesInt < maxMesGlobal2026 ? numDias : 0);
+
+        let sumaRealPrev = 0, sumaHistPrev = 0;
+        for (let i = 0; i < diaCorte; i++) {
+          const cod = String(i + 1).padStart(2, '0');
+          if (m26[cod] > 0) {
+            sumaRealPrev += m26[cod];
+            sumaHistPrev += avgHistDia[i];
+          }
+        }
+        const factorAjusteMes = (sumaHistPrev > 0 && sumaRealPrev > 0)
+          ? ((sumaRealPrev / sumaHistPrev - 1) * 0.6 + tasaMesEspecifica * 0.4)
+          : tasaMesEspecifica;
+
+        const d26Unified = labelsDias.map((_, i) => {
+          const dNum = i + 1;
+          const cod = String(dNum).padStart(2, '0');
+          if (dNum <= diaCorte) return m26[cod] || null;
+          return avgHistDia[i] * (1 + factorAjusteMes);
+        });
+
+        const sumaHistMes = avgHistDia.reduce((a, b) => a + b, 0);
+        const key26 = `${mesVal}_2026`;
+        const totalPPTOMes = pptoGuardadoPorMes[key26]
+          ? Number(pptoGuardadoPorMes[key26])
+          : sumaHistMes * (1 + Math.max(tasaMesEspecifica, 0.05));
+
+        const dPPTO = avgHistDia.map(v => totalPPTOMes * (v / (sumaHistMes || 1)));
+
+        // Identificar año líder en cada día para que la etiqueta del año superior nunca choque con otra curva
+        const serieRef = aniosActivos.includes('2026') ? d26Unified : (aniosActivos.includes('2025') ? d25 : (aniosActivos.includes('2024') ? d24 : d23));
+        let maxDiaIdx = 0, maxDiaVal = -1;
+        serieRef.forEach((v, idx) => { if (v > maxDiaVal) { maxDiaVal = v; maxDiaIdx = idx; } });
+
+        const pillLabelStyle = (borderCol, textCol, arrRef, alignPos) => ({
+          display: (ctx) => {
+            const v = arrRef[ctx.dataIndex];
+            if (!v || v <= 0) return false;
+            return ctx.dataIndex === maxDiaIdx || ctx.dataIndex === 0 || ctx.dataIndex === numDias - 1 || (ctx.dataIndex % 4 === 0 && Math.abs(ctx.dataIndex - maxDiaIdx) > 1);
+          },
+          align: alignPos,
+          offset: 6,
+          clamp: true,
+          backgroundColor: 'rgba(255, 255, 255, 0.94)',
+          borderColor: borderCol,
+          borderWidth: 1,
+          borderRadius: 4,
+          padding: { top: 1.5, bottom: 1.5, left: 3.5, right: 3.5 },
+          formatter: v => v ? `${(v/1000).toFixed(1)}k` : '',
+          color: textCol,
+          font: { weight: '800', size: 8.5 }
+        });
+
+        if (aniosActivos.includes('2026')) {
+          leyenda.innerHTML += `<span class="flex items-center gap-1.5 text-orange-600 font-extrabold"><span class="w-3 h-3 rounded-full bg-orange-600"></span> 2026</span>`;
+          datasetsFinales.push({
+            label: '2026',
+            data: d26Unified,
+            borderColor: '#ea580c',
+            backgroundColor: 'rgba(234, 88, 12, 0.08)',
+            borderWidth: 3,
+            tension: 0.35,
+            fill: true,
+            spanGaps: false,
+            segment: {
+              borderDash: (ctx) => diaCorte > 0 && ctx.p0DataIndex >= (diaCorte - 1) ? [5, 5] : undefined
+            },
+            pointBackgroundColor: (ctx) => ctx.dataIndex >= diaCorte ? '#ffffff' : '#ea580c',
+            pointBorderColor: '#ea580c',
+            pointRadius: 3.5,
+            datalabels: pillLabelStyle('#fed7aa', '#c2410c', d26Unified, 'top')
+          });
+        }
+        if (mostrarPPTO) {
+          leyenda.innerHTML += `<span class="flex items-center gap-1.5 text-rose-700 font-extrabold"><span class="w-3 h-3 rounded-full bg-rose-700"></span> PPTO</span>`;
+          datasetsFinales.push({ label: 'PPTO', data: dPPTO, borderColor: '#be123c', borderDash: [5, 5], borderWidth: 2.2, pointRadius: 2, datalabels: { display: false } });
+        }
+        if (aniosActivos.includes('2025')) {
+          const solo25 = !aniosActivos.includes('2026');
+          leyenda.innerHTML += `<span class="flex items-center gap-1.5 text-blue-900 font-bold"><span class="w-3 h-3 rounded-full bg-blue-900"></span> 2025</span>`;
+          datasetsFinales.push({
+            label: '2025',
+            data: d25,
+            borderColor: '#1e3a8a',
+            borderWidth: 2.3,
+            tension: 0.35,
+            pointRadius: 2.5,
+            datalabels: solo25 ? pillLabelStyle('#bfdbfe', '#1e3a8a', d25, 'top') : { display: false }
+          });
+        }
+        if (aniosActivos.includes('2024')) {
+          const solo24 = !aniosActivos.includes('2026') && !aniosActivos.includes('2025');
+          leyenda.innerHTML += `<span class="flex items-center gap-1.5 text-emerald-700 font-bold"><span class="w-3 h-3 rounded-full bg-emerald-600"></span> 2024</span>`;
+          datasetsFinales.push({
+            label: '2024',
+            data: d24,
+            borderColor: '#059669',
+            borderWidth: 1.8,
+            tension: 0.35,
+            pointRadius: solo24 ? 2.5 : 0,
+            datalabels: solo24 ? pillLabelStyle('#a7f3d0', '#065f46', d24, 'top') : { display: false }
+          });
+        }
+        if (aniosActivos.includes('2023')) {
+          const solo23 = !aniosActivos.includes('2026') && !aniosActivos.includes('2025') && !aniosActivos.includes('2024');
+          leyenda.innerHTML += `<span class="flex items-center gap-1.5 text-purple-700 font-bold"><span class="w-3 h-3 rounded-full bg-purple-600"></span> 2023</span>`;
+          datasetsFinales.push({
+            label: '2023',
+            data: d23,
+            borderColor: '#7c3aed',
+            borderWidth: 1.8,
+            tension: 0.35,
+            pointRadius: solo23 ? 2.5 : 0,
+            datalabels: solo23 ? pillLabelStyle('#ddd6fe', '#5b21b6', d23, 'top') : { display: false }
+          });
+        }
+
+        generarComentarioSerieDinamico(
+          { '2023': d23, '2024': d24, '2025': d25, '2026': d26Unified },
+          labelsDias,
+          false,
+          nombreMesActivo,
+          tasaMesEspecifica,
+          sumaRealPrev,
+          0
+        );
+
+        chartLineas = new Chart(ctx, {
+          type: 'line',
+          data: { labels: labelsDias, datasets: datasetsFinales },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 9.5, weight: '600' } } },
+              y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', callback: v => `S/ ${(v/1000).toFixed(1)}k` }, grace: '18%' }
+            }
+          }
+        });
+      }
+    }
+
+    // ==================== COMENTARIOS DINÁMICOS EVALUANDO TODOS LOS AÑOS Y MESES SELECCIONADOS ====================
+    function generarComentarioSerieDinamico(seriesMap, labels, isMonthly, contextoPeriodo, tasaPeriodo, realParcialNov, cierreProyNov) {
+      const activos = [...aniosActivos].sort();
+      const el = document.getElementById('insight-lineas-dinamico');
+      const tituloPeriodo = isMonthly ? 'el consolidado anual' : `el mes de <strong>${contextoPeriodo}</strong>`;
+
+      const statsAnio = (yr) => {
+        const arr = seriesMap[yr] || [];
+        let maxV = -1, maxL = "", minV = 999999999, minL = "", sum = 0, cnt = 0;
+        arr.forEach((v, i) => {
+          if (v !== null && v > 0) {
+            if (v > maxV) { maxV = v; maxL = labels[i]; }
+            if (v < minV) { minV = v; minL = labels[i]; }
+            sum += v;
+            cnt++;
+          }
+        });
+        return { yr, maxV, maxL, minV, minL, sum, prom: cnt > 0 ? sum / cnt : 0, arr };
+      };
+
+      // Encontrar el pico máximo absoluto y valle mínimo absoluto ENTRE TODOS LOS AÑOS MARCADOS
+      let globalMaxV = -1, globalMaxLabel = "", globalMaxYr = "";
+      let globalMinV = 999999999, globalMinLabel = "", globalMinYr = "";
+      activos.forEach(yr => {
+        const s = statsAnio(yr);
+        if (s.maxV > globalMaxV) { globalMaxV = s.maxV; globalMaxLabel = s.maxL; globalMaxYr = yr; }
+        if (s.minV < globalMinV && s.minV > 0) { globalMinV = s.minV; globalMinLabel = s.minL; globalMinYr = yr; }
+      });
+
+      // CASO 1: SOLO 1 AÑO SELECCIONADO
+      if (activos.length === 1) {
+        const s = statsAnio(activos[0]);
+        const extra2026 = (s.yr === '2026' && isMonthly && realParcialNov > 0)
+          ? `En noviembre se registran <strong>S/ ${realParcialNov.toLocaleString('es-PE', {maximumFractionDigits:0})}</strong> reales al ${maxFechaTexto2026}, proyectándose un cierre mensual de <strong>S/ ${Math.round(cierreProyNov).toLocaleString('es-PE')}</strong>.`
+          : `El promedio de facturación neta en ${tituloPeriodo} se ubica en <strong>S/ ${Math.round(s.prom).toLocaleString('es-PE')}</strong> por ${isMonthly ? 'mes' : 'día'}.`;
+
+        el.innerHTML = `
+          <p>• <strong>Desempeño Individual (${s.yr} — ${isMonthly ? 'Anual' : contextoPeriodo}):</strong> Acumulado de <strong>S/ ${s.sum.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> netos.</p>
+          <p>• <strong>Extremos Operativos (${s.yr}):</strong> Pico máximo en <strong>${s.maxL}</strong> (<strong>S/ ${s.maxV > 0 ? s.maxV.toLocaleString('es-PE', {minimumFractionDigits: 2}) : '0.00'}</strong>) y valle mínimo en <strong>${s.minL}</strong> (<strong>S/ ${s.minV < 999999999 ? s.minV.toLocaleString('es-PE', {minimumFractionDigits: 2}) : '0.00'}</strong>).</p>
+          <p>• <strong>Ritmo Operativo:</strong> ${extra2026}</p>
+        `;
+        return;
+      }
+
+      // CASO 2: EXACTAMENTE 2 AÑOS SELECCIONADOS
+      if (activos.length === 2) {
+        const s1 = statsAnio(activos[0]);
+        const s2 = statsAnio(activos[1]);
+        let sum2Comp = 0, sum1Comp = 0, maxBrecha = -999999999, brechaLabel = "";
+        labels.forEach((lb, i) => {
+          const v1 = s1.arr[i], v2 = s2.arr[i];
+          if (v1 > 0 && v2 > 0) {
+            sum1Comp += v1;
+            sum2Comp += v2;
+            if ((v2 - v1) > maxBrecha) { maxBrecha = v2 - v1; brechaLabel = lb; }
+          }
+        });
+        const diff = sum2Comp - sum1Comp;
+        const pct = sum1Comp > 0 ? (diff / sum1Comp) * 100 : 0;
+
+        el.innerHTML = `
+          <p>• <strong>Comparativa Directa en ${tituloPeriodo} (${s2.yr} vs ${s1.yr}):</strong> Variación neta de <strong>${diff >= 0 ? '+' : ''}S/ ${Math.round(diff).toLocaleString('es-PE')}</strong> (<strong>${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%</strong>).</p>
+          <p>• <strong>Pico Máximo del Periodo:</strong> Se alcanzó en <strong>${globalMaxLabel} (${globalMaxYr})</strong> con <strong>S/ ${globalMaxV.toLocaleString('es-PE', {minimumFractionDigits: 2})}</strong>; en <strong>${s2.yr}</strong> el mayor registro fue <strong>${s2.maxL}</strong> (<strong>S/ ${s2.maxV.toLocaleString('es-PE', {maximumFractionDigits:0})}</strong>).</p>
+          <p>• <strong>Mayor Diferencia a Favor de ${s2.yr}:</strong> Ocurrió en <strong>${brechaLabel}</strong> con <strong>${maxBrecha >= 0 ? '+' : ''}S/ ${Math.round(maxBrecha).toLocaleString('es-PE')}</strong>.</p>
+        `;
+        return;
+      }
+
+      // CASO 3: 3 O 4 AÑOS SELECCIONADOS
+      const statsTodos = activos.map(yr => statsAnio(yr));
+      const primero = statsTodos[0];
+      const ultimo = statsTodos[statsTodos.length - 1];
+      const resumenTotales = statsTodos.map(s => `<strong>${s.yr}:</strong> S/ ${Math.round(s.sum).toLocaleString('es-PE')}`).join(' | ');
+      const varPunta = primero.sum > 0 ? ((ultimo.sum - primero.sum) / primero.sum) * 100 : 0;
+
+      const detallePicoReciente = (globalMaxYr !== ultimo.yr)
+        ? ` Mientras tanto, en <strong>${ultimo.yr}</strong> el pico más alto fue el <strong>${ultimo.maxL}</strong> (<strong>S/ ${ultimo.maxV.toLocaleString('es-PE', {minimumFractionDigits: 2})}</strong>).`
+        : '';
+
+      el.innerHTML = `
+        <p>• <strong>Evolución en ${tituloPeriodo} (${activos.join(' – ')}):</strong> ${resumenTotales} (variación ${primero.yr}→${ultimo.yr}: <strong>${varPunta >= 0 ? '+' : ''}${varPunta.toFixed(1)}%</strong>).</p>
+        <p>• <strong>Pico Máximo Absoluto:</strong> Registrado el <strong>${globalMaxLabel}</strong> en <strong>${globalMaxYr}</strong> con <strong>S/ ${globalMaxV.toLocaleString('es-PE', {minimumFractionDigits: 2})}</strong> netos (valle mínimo: <strong>${globalMinLabel}</strong> en <strong>${globalMinYr}</strong> con <strong>S/ ${globalMinV.toLocaleString('es-PE', {minimumFractionDigits: 2})}</strong>).${detallePicoReciente}</p>
+        <p>• <strong>Tendencia Específica (${isMonthly ? 'Anual' : contextoPeriodo}):</strong> Variación multianual ponderada del <strong>${tasaPeriodo >= 0 ? '+' : ''}${(tasaPeriodo*100).toFixed(1)}%</strong>${ultimo.yr === '2026' && isMonthly && realParcialNov > 0 ? `; cierre proyectado de noviembre en <strong>S/ ${Math.round(cierreProyNov).toLocaleString('es-PE')}</strong> con avance real al ${maxFechaTexto2026}.` : '.'}</p>
+      `;
+    }
+
+    // ==================== COMPARATIVA POR CATEGORÍA CON COMENTARIOS DINÁMICOS ====================
+    async function actualizarComparativaCategorias() {
+      const filtroCafe = sqlCafeteria();
+      const modoAnios = document.getElementById('cat-filtro-anios').value;
+      const mesLocal = document.getElementById('cat-filtro-mes').value;
+      const whereMesLocal = mesLocal === 'TODOS' ? '1=1' : `Mes = '${mesLocal}'`;
+
+      const q = await conn.query(`
+        SELECT Cat_Corta,
+          SUM(CASE WHEN Anio = '2023' THEN Venta_Neta ELSE 0 END) as v23,
+          SUM(CASE WHEN Anio = '2024' THEN Venta_Neta ELSE 0 END) as v24,
+          SUM(CASE WHEN Anio = '2025' THEN Venta_Neta ELSE 0 END) as v25,
+          SUM(CASE WHEN Anio = '2026' THEN Venta_Neta ELSE 0 END) as v26
+        FROM ventas_mem
+        WHERE ${filtroCafe} AND ${whereMesLocal}
+        GROUP BY Cat_Corta ORDER BY v26 DESC
+      `);
+      const rows = q.toArray();
+      const labels = rows.map(r => r.Cat_Corta);
+
+      const dlConfig = (color, size = 8.5) => ({
+        display: true,
+        anchor: 'end',
+        align: 'top',
+        offset: 2,
+        clamp: true,
+        formatter: v => v !== 0 ? `${(v/1000).toFixed(0)}k` : '',
+        color: color,
+        font: { size: size, weight: '800' }
+      });
+
+      let datasets = [];
+      let isSingleYear = modoAnios.startsWith('SOLO_');
+      let isAllYears = (modoAnios === 'TODOS');
+      let anioBaseKey = 'v25', anioTargetKey = 'v26', nomBase = '2025', nomTarget = '2026';
+
+      if (isSingleYear) {
+        const yr = modoAnios.split('_')[1];
+        anioTargetKey = 'v' + yr.slice(2);
+        nomTarget = yr;
+        const colorMap = { '2023': '#7c3aed', '2024': '#059669', '2025': '#1e3a8a', '2026': '#ea580c' };
+        datasets = [
+          { label: `Año ${yr}`, data: rows.map(r => Number(r[anioTargetKey])), backgroundColor: colorMap[yr], borderRadius: 6, datalabels: dlConfig(colorMap[yr], 9.5) }
+        ];
+      } else if (modoAnios === '2025_2026') {
+        datasets = [
+          { label: '2025', data: rows.map(r => Number(r.v25)), backgroundColor: '#1e3a8a', borderRadius: 5, datalabels: dlConfig('#1e3a8a', 9) },
+          { label: '2026', data: rows.map(r => Number(r.v26)), backgroundColor: '#ea580c', borderRadius: 5, datalabels: dlConfig('#c2410c', 9) }
+        ];
+      } else if (modoAnios === '2024_2026') {
+        anioBaseKey = 'v24'; nomBase = '2024';
+        datasets = [
+          { label: '2024', data: rows.map(r => Number(r.v24)), backgroundColor: '#059669', borderRadius: 5, datalabels: dlConfig('#065f46', 9) },
+          { label: '2026', data: rows.map(r => Number(r.v26)), backgroundColor: '#ea580c', borderRadius: 5, datalabels: dlConfig('#c2410c', 9) }
+        ];
+      } else if (modoAnios === '2023_2026') {
+        anioBaseKey = 'v23'; nomBase = '2023';
+        datasets = [
+          { label: '2023', data: rows.map(r => Number(r.v23)), backgroundColor: '#7c3aed', borderRadius: 5, datalabels: dlConfig('#5b21b6', 9) },
+          { label: '2026', data: rows.map(r => Number(r.v26)), backgroundColor: '#ea580c', borderRadius: 5, datalabels: dlConfig('#c2410c', 9) }
+        ];
+      } else if (modoAnios === '2024_2025') {
+        anioBaseKey = 'v24'; anioTargetKey = 'v25'; nomBase = '2024'; nomTarget = '2025';
+        datasets = [
+          { label: '2024', data: rows.map(r => Number(r.v24)), backgroundColor: '#059669', borderRadius: 5, datalabels: dlConfig('#065f46', 9) },
+          { label: '2025', data: rows.map(r => Number(r.v25)), backgroundColor: '#1e3a8a', borderRadius: 5, datalabels: dlConfig('#1e3a8a', 9) }
+        ];
+      } else if (modoAnios === '2023_2024') {
+        anioBaseKey = 'v23'; anioTargetKey = 'v24'; nomBase = '2023'; nomTarget = '2024';
+        datasets = [
+          { label: '2023', data: rows.map(r => Number(r.v23)), backgroundColor: '#7c3aed', borderRadius: 5, datalabels: dlConfig('#5b21b6', 9) },
+          { label: '2024', data: rows.map(r => Number(r.v24)), backgroundColor: '#059669', borderRadius: 5, datalabels: dlConfig('#065f46', 9) }
+        ];
+      } else {
+        datasets = [
+          { label: '2023', data: rows.map(r => Number(r.v23)), backgroundColor: '#7c3aed', borderRadius: 4, datalabels: dlConfig('#5b21b6', 7.5) },
+          { label: '2024', data: rows.map(r => Number(r.v24)), backgroundColor: '#059669', borderRadius: 4, datalabels: dlConfig('#065f46', 7.5) },
+          { label: '2025', data: rows.map(r => Number(r.v25)), backgroundColor: '#1e3a8a', borderRadius: 4, datalabels: dlConfig('#1e3a8a', 7.5) },
+          { label: '2026', data: rows.map(r => Number(r.v26)), backgroundColor: '#ea580c', borderRadius: 4, datalabels: dlConfig('#c2410c', 7.5) }
+        ];
+      }
+
+      const ctx = document.getElementById('chart-categorias-anual').getContext('2d');
+      if (chartCatAnual) chartCatAnual.destroy();
+
+      chartCatAnual = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: {
+            x: { grid: { display: false }, ticks: { autoSkip: false, maxRotation: 0, minRotation: 0, color: '#1e293b', font: { weight: '700', size: 9 } } },
+            y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', callback: v => `S/ ${(v/1000).toFixed(0)}k` }, grace: '24%' }
+          }
+        }
+      });
+
+      const nomMesFiltro = document.getElementById('cat-filtro-mes').selectedOptions[0].text;
+      const elInsightCat = document.getElementById('insight-categorias-dinamico');
+
+      if (isSingleYear) {
+        const ordenadas = [...rows].sort((a, b) => Number(b[anioTargetKey]) - Number(a[anioTargetKey]));
+        const p1 = ordenadas[0] || { Cat_Corta: 'BEBIDAS' };
+        const p2 = ordenadas[1] || { Cat_Corta: 'SÁNDWICHES' };
+        const ult = ordenadas[ordenadas.length - 1] || { Cat_Corta: 'ABARROTES' };
+        const totYr = ordenadas.reduce((a, r) => a + Number(r[anioTargetKey]), 0);
+        const shareTop2 = totYr > 0 ? (((Number(p1[anioTargetKey]) + Number(p2[anioTargetKey])) / totYr) * 100).toFixed(1) : 0;
+
+        elInsightCat.innerHTML = `
+          <p>1. <strong>Categoría Líder (${nomTarget} — ${nomMesFiltro}):</strong> <strong>${p1.Cat_Corta}</strong> encabeza con <strong>S/ ${Number(p1[anioTargetKey]).toLocaleString('es-PE', {maximumFractionDigits:2})}</strong> netos.</p>
+          <p>2. <strong>Concentración del Mix:</strong> Entre <strong>${p1.Cat_Corta}</strong> y <strong>${p2.Cat_Corta}</strong> (S/ ${Number(p2[anioTargetKey]).toLocaleString('es-PE', {maximumFractionDigits:2})}) concentran el <strong>${shareTop2}%</strong> de la venta.</p>
+          <p>3. <strong>Menor Participación:</strong> <strong>${ult.Cat_Corta}</strong> registra <strong>S/ ${Number(ult[anioTargetKey]).toLocaleString('es-PE', {maximumFractionDigits:2})}</strong> en el periodo.</p>
+        `;
+      } else if (isAllYears) {
+        let lider4Y = "", max4Y = -1, exp26_23 = "", maxE26_23 = -999999999, exp26_25 = "", maxE26_25 = -999999999, cont26_25 = "", minE26_25 = 999999999;
+        rows.forEach(r => {
+          const sum4 = Number(r.v23) + Number(r.v24) + Number(r.v25) + Number(r.v26);
+          if (sum4 > max4Y) { max4Y = sum4; lider4Y = r.Cat_Corta; }
+          const d26_23 = Number(r.v26) - Number(r.v23);
+          if (d26_23 > maxE26_23) { maxE26_23 = d26_23; exp26_23 = r.Cat_Corta; }
+          const d26_25 = Number(r.v26) - Number(r.v25);
+          if (d26_25 > maxE26_25) { maxE26_25 = d26_25; exp26_25 = r.Cat_Corta; }
+          if (d26_25 < minE26_25) { minE26_25 = d26_25; cont26_25 = r.Cat_Corta; }
+        });
+
+        elInsightCat.innerHTML = `
+          <p>1. <strong>Líder Acumulado 4 Años (${nomMesFiltro}):</strong> <strong>${lider4Y}</strong> lidera el consolidado 2023–2026 con <strong>S/ ${max4Y.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong> netos.</p>
+          <p>2. <strong>Expansión Estructural (2026 vs 2023):</strong> <strong>${exp26_23}</strong> registra el mayor crecimiento acumulado (<strong>+S/ ${maxE26_23.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong>), mientras que frente a 2025 destaca <strong>${exp26_25}</strong> (<strong>${maxE26_25 >= 0 ? '+' : ''}S/ ${maxE26_25.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong>).</p>
+          <p>3. <strong>Mayor Ajuste Reciente (2026 vs 2025):</strong> <strong>${cont26_25}</strong> presenta una variación neta de <strong>S/ ${minE26_25.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong>.</p>
+        `;
+      } else {
+        let topCat = "", maxM = -1, topExp = "", maxE = -999999999, topCont = "", minE = 999999999;
+        rows.forEach(r => {
+          const vT = Number(r[anioTargetKey]), vB = Number(r[anioBaseKey]);
+          if (vT > maxM) { maxM = vT; topCat = r.Cat_Corta; }
+          const diff = vT - vB;
+          if (diff > maxE) { maxE = diff; topExp = r.Cat_Corta; }
+          if (diff < minE) { minE = diff; topCont = r.Cat_Corta; }
+        });
+
+        elInsightCat.innerHTML = `
+          <p>1. <strong>Líder en Ventas (${nomTarget} — ${nomMesFiltro}):</strong> <strong>${topCat || 'BEBIDAS'}</strong> encabeza la facturación con <strong>S/ ${maxM.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong> netos.</p>
+          <p>2. <strong>Mayor Crecimiento (${nomTarget} vs ${nomBase}):</strong> <strong>${topExp}</strong> registra el mayor avance neto (<strong>${maxE >= 0 ? '+' : ''}S/ ${maxE.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong>).</p>
+          <p>3. <strong>Mayor Contracción (${nomTarget} vs ${nomBase}):</strong> <strong>${topCont}</strong> muestra una variación de <strong>S/ ${minE.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong>.</p>
+        `;
+      }
+    }
+
+    window.actualizarComparativaCategorias = actualizarComparativaCategorias;
+
+    // ==================== PESTAÑA 2: MATRICES TOP 20 CON COLUMNAS DINÁMICAS POR AÑO ====================
+    async function renderProductosMatriz() {
+      const filtroCafe = sqlCafeteria();
+      const filtroMes = sqlMes();
+      const catWhere = categoriaSeleccionadaPill === 'TODAS' ? '' : `AND Cat_Corta = '${categoriaSeleccionadaPill}'`;
+
+      const colsAnios = [...aniosActivos].sort();
+      const whereAniosCols = `Anio IN (${colsAnios.map(a => `'${a}'`).join(',')})`;
+
+      const headerHTML = `
+        <tr>
+          <th class="py-2.5 px-2">Producto</th>
+          ${colsAnios.map(yr => `<th class="py-2.5 px-2 text-right ${yr === '2026' ? 'font-bold text-orange-600' : ''}">${yr}</th>`).join('')}
+          <th class="py-2.5 px-2 text-right font-extrabold text-blue-950">Total</th>
+        </tr>
+      `;
+      document.getElementById('thead-top-productos').innerHTML = headerHTML;
+      document.getElementById('thead-bottom-productos').innerHTML = headerHTML;
+
+      const selectAniosSQL = colsAnios.map(yr => `CAST(ROUND(SUM(CASE WHEN Anio = '${yr}' THEN Cantidad ELSE 0 END)) AS INT) as c_${yr}`).join(', ');
+
+      const qTop = await conn.query(`
+        SELECT Prod_Clean,
+          ${selectAniosSQL},
+          CAST(ROUND(SUM(Cantidad)) AS INT) as c_total
+        FROM ventas_mem
+        WHERE ${filtroCafe} AND ${filtroMes} AND ${whereAniosCols} ${catWhere} AND Prod_Clean != '' AND Cantidad > 0
+        GROUP BY Prod_Clean ORDER BY c_total DESC LIMIT 20
+      `);
+      const rowsTop = qTop.toArray();
+
+      document.getElementById('tabla-top-productos-matriz').innerHTML = rowsTop.map((r, idx) => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-2 px-2 font-semibold text-slate-800 truncate max-w-[160px]"><span class="text-slate-400 mr-1">${idx + 1}.</span>${r.Prod_Clean}</td>
+          ${colsAnios.map(yr => `<td class="py-2 px-2 text-right ${yr === '2026' ? 'font-bold text-orange-600' : 'font-medium text-slate-600'}">${Number(r['c_' + yr] || 0).toLocaleString('es-PE')}</td>`).join('')}
+          <td class="py-2 px-2 text-right font-extrabold text-blue-950">${Number(r.c_total).toLocaleString('es-PE')}</td>
+        </tr>
+      `).join('');
+
+      const topNombres = rowsTop.map(r => `'${r.Prod_Clean.replace(/'/g, "''")}'`);
+      const notInClause = topNombres.length > 0 ? `AND Prod_Clean NOT IN (${topNombres.join(',')})` : '';
+
+      const qBottom = await conn.query(`
+        SELECT Prod_Clean,
+          ${selectAniosSQL},
+          CAST(ROUND(SUM(Cantidad)) AS INT) as c_total
+        FROM ventas_mem
+        WHERE ${filtroCafe} AND ${filtroMes} AND ${whereAniosCols} ${catWhere} AND Prod_Clean != '' AND Cantidad > 0 ${notInClause}
+        GROUP BY Prod_Clean ORDER BY c_total ASC LIMIT 20
+      `);
+      const rowsBottom = qBottom.toArray();
+
+      document.getElementById('tabla-bottom-productos-matriz').innerHTML = rowsBottom.map((r, idx) => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-2 px-2 font-medium text-slate-600 truncate max-w-[160px]"><span class="text-slate-300 mr-1">${idx + 1}.</span>${r.Prod_Clean}</td>
+          ${colsAnios.map(yr => `<td class="py-2 px-2 text-right ${yr === '2026' ? 'font-bold text-amber-700' : 'font-medium text-slate-500'}">${Number(r['c_' + yr] || 0).toLocaleString('es-PE')}</td>`).join('')}
+          <td class="py-2 px-2 text-right font-extrabold text-slate-900">${Number(r.c_total).toLocaleString('es-PE')}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function renderParetoDinamico() {
+      const filtroCafe = sqlCafeteria();
+      const filtroMes = sqlMes();
+      const whereAnios = sqlAniosActivos();
+      const catWhere = categoriaSeleccionadaPill === 'TODAS' ? '' : `AND Cat_Corta = '${categoriaSeleccionadaPill}'`;
+
+      const qPareto = await conn.query(`
+        SELECT Prod_Clean, SUM(Venta_Neta) as total_soles
+        FROM ventas_mem
+        WHERE ${filtroCafe} AND ${filtroMes} AND ${whereAnios} ${catWhere} AND Prod_Clean != ''
+        GROUP BY Prod_Clean ORDER BY total_soles DESC LIMIT 15
+      `);
+      const rowsP = qPareto.toArray();
+      const sumTotal = rowsP.reduce((acc, r) => acc + Number(r.total_soles), 0);
+
+      let acum = 0;
+      const paretoPct = rowsP.map(r => {
+        acum += Number(r.total_soles);
+        return sumTotal > 0 ? ((acum / sumTotal) * 100).toFixed(1) : 0;
+      });
+
+      const ctxPar = document.getElementById('chart-pareto').getContext('2d');
+      if (chartPareto) chartPareto.destroy();
+
+      chartPareto = new Chart(ctxPar, {
+        data: {
+          labels: rowsP.map(r => etiquetaHorizontal(r.Prod_Clean)),
+          datasets: [
+            {
+              type: 'line',
+              label: '% Acumulado',
+              data: paretoPct,
+              borderColor: '#ea580c',
+              borderWidth: 2.8,
+              yAxisID: 'y1',
+              pointRadius: 3.5,
+              pointBackgroundColor: '#ea580c',
+              datalabels: { display: false }
+            },
+            {
+              type: 'bar',
+              label: 'Ventas S/',
+              data: rowsP.map(r => Number(r.total_soles)),
+              backgroundColor: '#1e3a8a',
+              borderRadius: 6,
+              yAxisID: 'y',
+              datalabels: {
+                display: true,
+                anchor: 'end',
+                align: 'top',
+                offset: 2,
+                clamp: true,
+                formatter: v => v >= 1000 ? `${(v/1000).toFixed(1)}k` : `${Math.round(v)}`,
+                color: '#1e3a8a',
+                font: { weight: '800', size: 9 }
+              }
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: {
+            x: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0, font: { size: 8.5, weight: '600' }, color: '#334155' }, grid: { display: false } },
+            y: { ticks: { callback: v => `S/ ${(v/1000).toFixed(0)}k`, color: '#64748b' }, grace: '22%' },
+            y1: { position: 'right', max: 100, ticks: { callback: v => `${v}%`, color: '#ea580c' }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    window.renderPrecioHistorico = async function() {
+      const ctx = document.getElementById('chart-precio-historico').getContext('2d');
+      if (chartPrecioHist) chartPrecioHist.destroy();
+      if (prodsPrecioSeleccionados.size === 0) return;
+
+      const aniosLabels = ['2023', '2024', '2025', '2026'];
+      const colores = ['#ea580c', '#1e3a8a', '#059669', '#7c3aed', '#0284c7'];
+      let datasets = [];
+
+      let idxColor = 0;
+      for (const prod of prodsPrecioSeleccionados) {
+        const q = await conn.query(`
+          SELECT Anio, AVG(Precio) as precio_prom
+          FROM ventas_mem
+          WHERE Prod_Clean = '${prod.replace(/'/g, "''")}' AND Precio > 0
+          GROUP BY Anio ORDER BY Anio ASC
+        `);
+        const mapP = {};
+        q.toArray().forEach(r => { mapP[r.Anio] = Number(r.precio_prom).toFixed(2); });
+
+        const color = colores[idxColor % colores.length];
+        const alignDir = idxColor % 2 === 0 ? 'top' : 'bottom';
+        datasets.push({
+          label: prod,
+          data: aniosLabels.map(a => mapP[a] || null),
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2.8,
+          tension: 0.3,
+          spanGaps: false,
+          pointRadius: 4.5,
+          datalabels: {
+            display: true,
+            align: alignDir,
+            offset: 5,
+            clamp: true,
+            backgroundColor: 'rgba(255, 255, 255, 0.92)',
+            borderColor: color,
+            borderWidth: 1,
+            borderRadius: 4,
+            padding: { top: 1.5, bottom: 1.5, left: 3.5, right: 3.5 },
+            formatter: v => v ? `S/ ${Number(v).toFixed(2)}` : '',
+            font: { weight: '800', size: 9.5 },
+            color: color
+          }
+        });
+        idxColor++;
+      }
+
+      chartPrecioHist = new Chart(ctx, {
+        type: 'line',
+        data: { labels: aniosLabels.map(a => `Año ${a}`), datasets: datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top' } },
+          scales: {
+            x: { ticks: { maxRotation: 0, minRotation: 0, font: { weight: '600' } } },
+            y: { ticks: { callback: v => `S/ ${Number(v).toFixed(2)}`, color: '#64748b' }, grace: '24%' }
+          }
+        }
+      });
+    };
+
+    // ==================== PESTAÑA 3: INTELIGENCIA & COMBOS DINÁMICOS ====================
+    async function renderInteligenciaComercial() {
+      const filtroCafe = sqlCafeteria();
+      const filtroMes = sqlMes();
+      const whereAnios = sqlAniosActivos();
+      const filtroIntel = sqlFiltroIntel();
+
+      const qH = await conn.query(`
+        SELECT Hora_Int, SUM(Venta_Neta) as v
+        FROM ventas_mem 
+        WHERE ${filtroCafe} AND ${filtroMes} AND ${whereAnios} ${filtroIntel} AND Hora_Int BETWEEN 0 AND 23
+        GROUP BY Hora_Int ORDER BY Hora_Int ASC
+      `);
+      const rowsH = qH.toArray();
+      const horasLabels = rowsH.map(r => `${String(r.Hora_Int).padStart(2, '0')}:00`);
+      const dataH = rowsH.map(r => Number(r.v) || 0);
+
+      let maxH = -1, picoH = "12:00";
+      rowsH.forEach(r => { if (Number(r.v) > maxH) { maxH = Number(r.v); picoH = `${String(r.Hora_Int).padStart(2, '0')}:00`; } });
+      document.getElementById('sub-horas-dinamico').innerText = `Mayor concentración a las ${picoH} (S/ ${Math.round(maxH).toLocaleString('es-PE')})`;
+
+      const ctxH = document.getElementById('chart-horas').getContext('2d');
+      if (chartHoras) chartHoras.destroy();
+
+      chartHoras = new Chart(ctxH, {
+        type: 'line',
+        data: {
+          labels: horasLabels,
+          datasets: [{
+            data: dataH,
+            borderColor: '#059669',
+            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2.5,
+            pointRadius: 3.5,
+            datalabels: {
+              display: (ctx) => dataH[ctx.dataIndex] > 0 && (ctx.dataIndex % 3 === 0 || dataH[ctx.dataIndex] === maxH),
+              align: 'top',
+              offset: 4,
+              clamp: true,
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              borderColor: '#a7f3d0',
+              borderWidth: 1,
+              borderRadius: 4,
+              padding: { top: 1, bottom: 1, left: 3, right: 3 },
+              formatter: v => `${(v/1000).toFixed(1)}k`,
+              color: '#065f46',
+              font: { weight: 'bold', size: 8.5 }
+            }
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0, color: '#64748b', font: { size: 9 } } },
+            y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', callback: v => `S/ ${(v/1000).toFixed(0)}k` }, grace: '22%' }
+          }
+        }
+      });
+
+      const ctxD = document.getElementById('chart-dias').getContext('2d');
+      if (chartDias) chartDias.destroy();
+      const diasLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+      const qD = await conn.query(`
+        SELECT DAYOFWEEK(Fecha_Date) as dow, SUM(Venta_Neta) as tot
+        FROM ventas_mem WHERE ${filtroCafe} AND ${filtroMes} AND ${whereAnios} ${filtroIntel}
+        GROUP BY dow
+      `);
+      const mapD = {};
+      qD.toArray().forEach(r => { mapD[r.dow] = Number(r.tot) || 0; });
+      const dataD = [mapD[1]||0, mapD[2]||0, mapD[3]||0, mapD[4]||0, mapD[5]||0, mapD[6]||0, mapD[0]||0];
+
+      let maxDiaVal = -1, diaLider = "Viernes";
+      dataD.forEach((v, idx) => { if (v > maxDiaVal) { maxDiaVal = v; diaLider = diasLabels[idx]; } });
+      document.getElementById('sub-dias-dinamico').innerText = `Día líder de facturación: ${diaLider} (S/ ${Math.round(maxDiaVal).toLocaleString('es-PE')})`;
+
+      chartDias = new Chart(ctxD, {
+        type: 'bar',
+        data: {
+          labels: diasLabels,
+          datasets: [{
+            data: dataD,
+            backgroundColor: '#1e3a8a',
+            borderRadius: 5,
+            datalabels: {
+              display: true,
+              anchor: 'end',
+              align: 'top',
+              offset: 2,
+              clamp: true,
+              formatter: v => v > 0 ? `${(v/1000).toFixed(0)}k` : '',
+              color: '#1e3a8a',
+              font: { weight: '800', size: 9.5 }
+            }
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0, color: '#334155', font: { weight: '700', size: 10 } } },
+            y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', callback: v => `S/ ${(v/1000).toFixed(0)}k` }, grace: '24%' }
+          }
+        }
+      });
+
+      const ctxT = document.getElementById('chart-ticket-promedio').getContext('2d');
+      if (chartTicketProm) chartTicketProm.destroy();
+      const qT = await conn.query(`
+        SELECT Anio, AVG(Venta_Neta) as ticket
+        FROM ventas_mem WHERE ${filtroCafe} AND ${filtroMes} AND ${whereAnios} ${filtroIntel}
+        GROUP BY Anio ORDER BY Anio ASC
+      `);
+      const resT = qT.toArray();
+      const promGeneral = resT.length > 0 ? (resT.reduce((a, b) => a + Number(b.ticket), 0) / resT.length) : 0;
+      document.getElementById('sub-ticket-dinamico').innerText = `Ticket promedio del periodo: S/ ${promGeneral.toFixed(2)} por boleta`;
+
+      chartTicketProm = new Chart(ctxT, {
+        type: 'bar',
+        data: {
+          labels: resT.map(r => r.Anio),
+          datasets: [{
+            data: resT.map(r => Number(r.ticket).toFixed(2)),
+            backgroundColor: '#ea580c',
+            borderRadius: 5,
+            datalabels: {
+              display: true,
+              anchor: 'end',
+              align: 'top',
+              offset: 2,
+              clamp: true,
+              formatter: v => `S/ ${Number(v).toFixed(2)}`,
+              color: '#c2410c',
+              font: { weight: '800', size: 10 }
+            }
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0, color: '#334155', font: { weight: '700', size: 10 } } },
+            y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' }, grace: '24%' }
+          }
+        }
+      });
+    }
+
+    async function renderMarketBasket() {
+      const filtroCafe = sqlCafeteria();
+      const filtroMes = sqlMes();
+      const whereAnios = sqlAniosActivos();
+      const filtroIntel = sqlFiltroIntel();
+      const excluirMenusSQL = `AND Cat_Corta NOT IN ('MENÚ TV', 'MENÚ TALLER') AND UPPER(Prod_Clean) NOT LIKE '%MENU%' AND UPPER(Prod_Clean) NOT LIKE '%MENÚ%'`;
+
+      const cafeTxt = document.getElementById('filtro-cafeteria').selectedOptions[0].text;
+      const mesTxt = document.getElementById('filtro-mes').selectedOptions[0].text;
+      const aniosTxt = [...aniosActivos].sort().join(', ');
+
+      document.getElementById('sub-basket-dinamico').innerText = `Co-ocurrencia real en boletas para ${cafeTxt} • ${mesTxt} (${aniosTxt})`;
+      document.getElementById('badge-basket-periodo').innerText = `${mesTxt} (${aniosTxt})`;
+
+      const q = await conn.query(`
+        WITH top_art AS (
+          SELECT Prod_Clean as p FROM ventas_mem
+          WHERE ${filtroCafe} AND ${filtroMes} AND ${whereAnios} ${filtroIntel} ${excluirMenusSQL} AND Prod_Clean != ''
+          GROUP BY p ORDER BY SUM(Cantidad) DESC LIMIT 22
+        ),
+        tickets_sub AS (
+          SELECT DISTINCT Num_Doc FROM ventas_mem
+          WHERE ${filtroCafe} AND ${filtroMes} AND ${whereAnios} ${filtroIntel} ${excluirMenusSQL} AND Num_Doc != ''
+          LIMIT 4500
+        )
+        SELECT v1.Prod_Clean as p1, v2.Prod_Clean as p2, COUNT(*) as freq
+        FROM ventas_mem v1
+        JOIN ventas_mem v2 ON v1.Num_Doc = v2.Num_Doc AND v1.Prod_Clean < v2.Prod_Clean
+        WHERE v1.Num_Doc IN (SELECT Num_Doc FROM tickets_sub)
+          AND v1.Prod_Clean IN (SELECT p FROM top_art)
+          AND v2.Prod_Clean IN (SELECT p FROM top_art)
+        GROUP BY p1, p2 ORDER BY freq DESC LIMIT 6
+      `);
+      const rows = q.toArray();
+
+      document.getElementById('contenedor-market-basket').innerHTML = rows.map((r, i) => `
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+          <div class="truncate mr-2">
+            <span class="text-xs font-bold text-slate-800">${i + 1}. ${r.p1} + ${r.p2}</span>
+          </div>
+          <span class="text-xs font-black text-blue-950 flex-shrink-0">${Number(r.freq).toLocaleString()} boletas</span>
+        </div>
+      `).join('');
+    }
+
+    async function generarCombosDinamicosDesdeBase() {
+      const filtroCafe = sqlCafeteria();
+      const filtroMes = sqlMes();
+      const whereAnios = sqlAniosActivos();
+      const excluirMenusSQL = `AND Cat_Corta NOT IN ('MENÚ TV', 'MENÚ TALLER', 'ABARROTES') AND UPPER(Prod_Clean) NOT LIKE '%MENU%' AND UPPER(Prod_Clean) NOT LIKE '%MENÚ%'`;
+
+      const cafeTxt = document.getElementById('filtro-cafeteria').selectedOptions[0].text;
+      const mesTxt = document.getElementById('filtro-mes').selectedOptions[0].text;
+      const aniosTxt = [...aniosActivos].sort().join(', ');
+
+      document.getElementById('sub-combos-dinamico').innerText = `Calculados en vivo sobre los productos más vendidos en ${cafeTxt} • ${mesTxt} (${aniosTxt})`;
+      document.getElementById('badge-estacionalidad').innerText = `${mesTxt} (${aniosTxt})`;
+
+      const qLideres = await conn.query(`
+        SELECT Cat_Corta, Prod_Clean, SUM(Cantidad) as cant, AVG(Precio) as precio_prom
+        FROM ventas_mem
+        WHERE ${filtroCafe} AND ${filtroMes} AND ${whereAnios} ${excluirMenusSQL}
+          AND Prod_Clean != '' AND Precio > 0
+        GROUP BY Cat_Corta, Prod_Clean
+        ORDER BY cant DESC
+      `);
+      const rows = qLideres.toArray();
+
+      const getTopByCat = (cats, idx = 0) => {
+        const filtrados = rows.filter(r => cats.includes(r.Cat_Corta));
+        return filtrados[idx] || filtrados[0] || { Prod_Clean: 'Producto Líder', cant: 100, precio_prom: 5.5 };
+      };
+
+      const topSandwich1 = getTopByCat(['SÁNDWICHES'], 0);
+      const topSandwich2 = getTopByCat(['SÁNDWICHES'], 1);
+      const topCaliente1 = getTopByCat(['CALIENTES'], 0);
+      const topBebida1 = getTopByCat(['BEBIDAS'], 0);
+      const topBebida2 = getTopByCat(['BEBIDAS'], 1);
+      const topPastel1 = getTopByCat(['PASTELERÍA'], 0);
+      const topPostre1 = getTopByCat(['POSTRES'], 0);
+      const topGalleta1 = getTopByCat(['GALLETAS'], 0);
+      const topPlato1 = getTopByCat(['PLATOS CARTA'], 0);
+
+      const calcPrecioCombo = (p1, p2) => {
+        const suma = (Number(p1.precio_prom) || 5) + (Number(p2.precio_prom) || 3);
+        return (Math.round((suma * 0.92) * 2) / 2).toFixed(2);
+      };
+
+      const combosReales = [
+        {
+          t: "1. Combo Desayuno Líder",
+          m: "75%",
+          prod: `${topSandwich1.Prod_Clean} + ${topCaliente1.Prod_Clean}`,
+          desc: `Combina el sándwich #1 (${Math.round(topSandwich1.cant).toLocaleString()} un) con la bebida caliente líder (${Math.round(topCaliente1.cant).toLocaleString()} un) en ${mesTxt}.`,
+          sug: `S/ ${calcPrecioCombo(topSandwich1, topCaliente1)}`
+        },
+        {
+          t: "2. Combo Media Mañana",
+          m: "72%",
+          prod: `${topPastel1.Prod_Clean} + ${topBebida1.Prod_Clean}`,
+          desc: `Aprovecha el pico de tráfico de 10:00 a 12:00 uniendo ${topPastel1.Prod_Clean} (${Math.round(topPastel1.cant).toLocaleString()} un) y ${topBebida1.Prod_Clean}.`,
+          sug: `S/ ${calcPrecioCombo(topPastel1, topBebida1)}`
+        },
+        {
+          t: "3. Combo Carta & Hidratación",
+          m: "76%",
+          prod: `${topPlato1.Prod_Clean} + ${topBebida2.Prod_Clean}`,
+          desc: `Empaqueta el plato a la carta más pedido (${Math.round(topPlato1.cant).toLocaleString()} un) con ${topBebida2.Prod_Clean} para maximizar el ticket del almuerzo.`,
+          sug: `S/ ${calcPrecioCombo(topPlato1, topBebida2)}`
+        },
+        {
+          t: "4. Combo Tarde Dulce",
+          m: "69%",
+          prod: `${topPostre1.Prod_Clean} + ${topSandwich2.Prod_Clean}`,
+          desc: `Dinamiza las ventas vespertinas rotando ${topPostre1.Prod_Clean} (${Math.round(topPostre1.cant).toLocaleString()} un) junto a ${topSandwich2.Prod_Clean}.`,
+          sug: `S/ ${calcPrecioCombo(topPostre1, topSandwich2)}`
+        },
+        {
+          t: "5. Combo Impulso Rápido",
+          m: "67%",
+          prod: `${topGalleta1.Prod_Clean} + ${topBebida1.Prod_Clean}`,
+          desc: `Despacho en menos de 15 segundos ideal para horas punta y turno noche (${Math.round(topGalleta1.cant).toLocaleString()} un vendidas en el periodo).`,
+          sug: `S/ ${calcPrecioCombo(topGalleta1, topBebida1)}`
+        }
+      ];
+
+      document.getElementById('contenedor-combos-dinamicos').innerHTML = combosReales.map(c => `
+        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start">
+              <span class="text-xs font-bold text-blue-950">${c.t}</span>
+              <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Margen: ${c.m}</span>
+            </div>
+            <p class="text-xs text-slate-800 mt-2 font-bold">${c.prod}</p>
+            <p class="text-[11px] text-slate-500 mt-1 leading-relaxed">${c.desc}</p>
+          </div>
+          <div class="mt-3 pt-2 border-t border-slate-200 text-[11px] font-semibold text-slate-700 flex justify-between">
+            <span>Tarifa Combo: <strong>${c.sug}</strong></span>
+            <span class="text-orange-600 font-bold">Dato Real (${aniosTxt})</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ==================== MÓDULO PREDICTIVO CON CRECIMIENTO ESPECÍFICO POR MES Y DÍA (4 AÑOS) ====================
+    window.calcularProyecciones = async function() {
+      const filtroCafe = sqlCafeteria();
+      const horizonte = document.getElementById('proj-horizonte').value;
+      const escenario = document.getElementById('proj-escenario').value;
+
+      let whereCat = "";
+      if (catsProjSeleccionadas.size > 0 && catsProjSeleccionadas.size < diezCategoriasCortas.length) {
+        const inList = Array.from(catsProjSeleccionadas).map(c => `'${c}'`).join(',');
+        whereCat = `AND Cat_Corta IN (${inList})`;
+      } else if (catsProjSeleccionadas.size === 0) {
+        whereCat = `AND 1=0`;
+      }
+
+      const modelo4Y = await obtenerModelo4Anios(filtroCafe, whereCat);
+      const ajusteEscenario = escenario === 'CONSERVADOR' ? -0.05 : (escenario === 'OPTIMISTA' ? 0.05 : 0);
+
+      let labels = [], serieProyectada = [], seriePPTO = [], baseHistorica = 0, proyectadoTotal = 0, divisorMeta = 30;
+      let tasaEfectiva = 0;
+      let sustentoHTML = "";
+      let esVistaAnual = (horizonte === 'ANIO_2027');
+
+      const nombresM = { '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril', '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto', '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre' };
+      const inputPpto = document.getElementById('input-ppto-manual');
+      const lblEstado = document.getElementById('lbl-estado-ppto');
+      const btnReset = document.getElementById('btn-reset-ppto');
+
+      if (esVistaAnual) {
+        labels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Set', 'Oct', 'Nov', 'Dic'];
+        divisorMeta = 12;
+        document.getElementById('titulo-grafico-proyeccion').innerText = "Curva Proyectada vs Presupuesto (Año 2027 — Tasa Específica por Mes)";
+
+        const pesosMensuales = labels.map((_, i) => modelo4Y.promMes4Y[String(i + 1).padStart(2, '0')] || 115000);
+        baseHistorica = pesosMensuales.reduce((a, b) => a + b, 0);
+
+        // Cada mes de 2027 se proyecta con SU PROPIA tasa de crecimiento interanual de 4 años
+        let minTasaMes = 999, maxTasaMes = -999, mesMinNom = "", mesMaxNom = "";
+        serieProyectada = labels.map((nomM, i) => {
+          const cod = String(i + 1).padStart(2, '0');
+          const tasaM = (modelo4Y.tasaPorMes[cod] ?? modelo4Y.tasaGlobalYTD) + ajusteEscenario;
+          if (tasaM < minTasaMes) { minTasaMes = tasaM; mesMinNom = nomM; }
+          if (tasaM > maxTasaMes) { maxTasaMes = tasaM; mesMaxNom = nomM; }
+          return pesosMensuales[i] * (1 + tasaM);
+        });
+
+        proyectadoTotal = serieProyectada.reduce((a, b) => a + b, 0);
+        tasaEfectiva = baseHistorica > 0 ? (proyectadoTotal - baseHistorica) / baseHistorica : 0;
+
+        seriePPTO = labels.map((_, i) => {
+          const cod = String(i + 1).padStart(2, '0');
+          const key = `${cod}_2027`;
+          if (pptoGuardadoPorMes[key]) return Number(pptoGuardadoPorMes[key]);
+          return serieProyectada[i] * 1.05;
+        });
+
+        const sumaPPTOAnual = seriePPTO.reduce((a, b) => a + b, 0);
+        if (pptoGuardadoPorMes['ANIO_2027']) {
+          const manualAnual = Number(pptoGuardadoPorMes['ANIO_2027']);
+          seriePPTO = labels.map((_, i) => manualAnual * modelo4Y.pesosMes4Y[String(i + 1).padStart(2, '0')]);
+          if (document.activeElement !== inputPpto) inputPpto.value = manualAnual;
+          lblEstado.innerText = "Meta anual personalizada";
+          btnReset.classList.remove('hidden');
+        } else {
+          if (document.activeElement !== inputPpto) inputPpto.value = Math.round(sumaPPTOAnual);
+          lblEstado.innerText = "Suma de metas mensuales 2027";
+          btnReset.classList.add('hidden');
+        }
+
+        const totalPPTOActual = Number(inputPpto.value) || proyectadoTotal;
+        sustentoHTML = `
+          <p>• <strong>Proyección Diferenciada por Mes (2023–2026):</strong> Cada mes de 2027 aplica su propia tasa de variación histórica de 4 años (desde <strong>${(minTasaMes*100).toFixed(1)}%</strong> en ${mesMinNom} hasta <strong>+${(maxTasaMes*100).toFixed(1)}%</strong> en ${mesMaxNom}), alcanzando <strong>S/ ${proyectadoTotal.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong>.</p>
+          <p>• <strong>Distribución de Meta PPTO:</strong> El presupuesto anual de <strong>S/ ${totalPPTOActual.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong> se asigna mes a mes respetando los pesos estacionales del trienio/cuatrienio.</p>
+        `;
+
+      } else {
+        let mesCod = "11", anioObj = "2026", numDias = 30;
+        if (horizonte.endsWith('_2027')) { mesCod = horizonte.split('_')[0]; anioObj = "2027"; }
+        else if (horizonte === '11_2026') { mesCod = "11"; anioObj = "2026"; }
+        else if (horizonte === '12_2026') { mesCod = "12"; anioObj = "2026"; }
+        else if (horizonte === 'BIM_2026') { mesCod = "BIM"; anioObj = "2026"; numDias = 61; }
+
+        if (['01', '03', '05', '07', '08', '10', '12'].includes(mesCod)) numDias = 31;
+        else if (mesCod === '02') numDias = 28;
+
+        divisorMeta = numDias;
+        labels = Array.from({length: numDias}, (_, i) => `Día ${i + 1}`);
+        const tituloPeriodo = mesCod === 'BIM' ? 'Bimestre Nov-Dic' : nombresM[mesCod];
+        document.getElementById('titulo-grafico-proyeccion').innerText = `Curva Diaria Proyectada vs Presupuesto (${tituloPeriodo} ${anioObj} — Base 4 Años)`;
+
+        const whereP = mesCod === 'BIM' ? "AND Mes IN ('11', '12')" : `AND Mes = '${mesCod}'`;
+        
+        // Tasa de crecimiento específica de ESE mes exacto en los 4 años
+        const tasaMesBase = mesCod === 'BIM'
+          ? (((modelo4Y.tasaPorMes['11'] || 0) + (modelo4Y.tasaPorMes['12'] || 0)) / 2)
+          : (modelo4Y.tasaPorMes[mesCod] ?? modelo4Y.tasaGlobalYTD);
+        const tasaAplicada = tasaMesBase + ajusteEscenario;
+
+        // Obtener histórico día por día de ESE mes en los 4 años
+        const qDiasHist = await conn.query(`
+          SELECT Dia, AVG(tot) as prom_dia FROM (
+            SELECT Anio, Dia, SUM(Venta_Neta) as tot
+            FROM ventas_mem WHERE ${filtroCafe} ${whereP} ${whereCat} AND Dia != ''
+              AND (Anio IN ('2023', '2024', '2025') OR (Anio = '2026' AND MMDD <= ${maxMMDD2026}))
+            GROUP BY Anio, Dia
+          ) GROUP BY Dia ORDER BY Dia ASC
+        `);
+        const mapD = {};
+        qDiasHist.toArray().forEach(r => { mapD[r.Dia] = Number(r.prom_dia) || 0; });
+
+        const pesosDiarios = labels.map((_, i) => {
+          const codD = String(i + 1).padStart(2, '0');
+          return mapD[codD] > 0 ? mapD[codD] : 4000;
+        });
+
+        baseHistorica = pesosDiarios.reduce((a, b) => a + b, 0);
+        serieProyectada = pesosDiarios.map(v => v * (1 + tasaAplicada));
+        proyectadoTotal = serieProyectada.reduce((a, b) => a + b, 0);
+
+        if (horizonte === '11_2026' && maxMesGlobal2026 === 11) {
+          const qRealNov = await conn.query(`
+            SELECT Dia, SUM(Venta_Neta) as v_real
+            FROM ventas_mem WHERE ${filtroCafe} AND Anio = '2026' AND Mes = '11' ${whereCat}
+            GROUP BY Dia
+          `);
+          const mapRealNov = {};
+          qRealNov.toArray().forEach(r => { mapRealNov[r.Dia] = Number(r.v_real) || 0; });
+
+          serieProyectada = labels.map((_, i) => {
+            const dNum = i + 1;
+            const codD = String(dNum).padStart(2, '0');
+            if (dNum <= maxDiaGlobal2026 && mapRealNov[codD] > 0) return mapRealNov[codD];
+            return pesosDiarios[i] * (1 + tasaAplicada);
+          });
+          proyectadoTotal = serieProyectada.reduce((a, b) => a + b, 0);
+        }
+
+        tasaEfectiva = baseHistorica > 0 ? (proyectadoTotal - baseHistorica) / baseHistorica : tasaAplicada;
+
+        let totalPPTOMes = 0;
+        if (pptoGuardadoPorMes[horizonte]) {
+          totalPPTOMes = Number(pptoGuardadoPorMes[horizonte]);
+          if (document.activeElement !== inputPpto) inputPpto.value = totalPPTOMes;
+          lblEstado.innerText = `Meta guardada (${tituloPeriodo} ${anioObj})`;
+          btnReset.classList.remove('hidden');
+        } else {
+          totalPPTOMes = Math.round(proyectadoTotal * 1.05);
+          if (document.activeElement !== inputPpto) inputPpto.value = totalPPTOMes;
+          lblEstado.innerText = "Sugerido (+5%) — editable";
+          btnReset.classList.add('hidden');
+        }
+
+        seriePPTO = pesosDiarios.map(v => totalPPTOMes * (v / (baseHistorica || 1)));
+
+        const detM = mesCod !== 'BIM' ? modelo4Y.detalleMes4Y[mesCod] : null;
+        const detalleVariacionesMes = detM
+          ? `24/23: <strong>${(detM.g24_23*100).toFixed(1)}%</strong>, 25/24: <strong>${(detM.g25_24*100).toFixed(1)}%</strong>, 26/25: <strong>${(detM.g26_25*100).toFixed(1)}%</strong>`
+          : `ponderación histórica Noviembre y Diciembre`;
+
+        sustentoHTML = `
+          <p>• <strong>Sustento Específico de ${tituloPeriodo} (2023–2026):</strong> Evalúa las variaciones exclusivas de ${tituloPeriodo} en los 4 años (${detalleVariacionesMes}), aplicando una tasa neta del <strong>${tasaEfectiva >= 0 ? '+' : ''}${(tasaEfectiva*100).toFixed(1)}%</strong> para proyectar <strong>S/ ${proyectadoTotal.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong>.</p>
+          <p>• <strong>Distribución Diaria de Meta PPTO:</strong> El presupuesto de <strong>S/ ${totalPPTOMes.toLocaleString('es-PE', {maximumFractionDigits:2})}</strong> se reparte día por día respetando el peso porcentual histórico de cada jornada de ${tituloPeriodo}.</p>
+        `;
+      }
+
+      const totalPPTOActual = Number(inputPpto.value) || proyectadoTotal;
+      const metaProm = totalPPTOActual / divisorMeta;
+      const brecha = proyectadoTotal - totalPPTOActual;
+
+      document.getElementById('proj-base-historica').innerText = `S/ ${baseHistorica.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('proj-monto-estimado').innerText = `S/ ${proyectadoTotal.toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      document.getElementById('proj-pct').innerText = `${tasaEfectiva >= 0 ? '+' : ''}${(tasaEfectiva * 100).toFixed(1)}% (tasa específica 4 años)`;
+      document.getElementById('proj-meta-diaria').innerText = esVistaAnual ? `S/ ${Math.round(metaProm).toLocaleString('es-PE')} / mes` : `S/ ${Math.round(metaProm).toLocaleString('es-PE')} / día`;
+      
+      const elBrecha = document.getElementById('proj-brecha');
+      elBrecha.innerText = `${brecha >= 0 ? '+' : ''}S/ ${Math.round(brecha).toLocaleString('es-PE')}`;
+      elBrecha.className = brecha >= 0 ? "text-lg font-black mt-0.5 text-emerald-700" : "text-lg font-black mt-0.5 text-rose-600";
+      document.getElementById('proj-brecha-sub').innerText = brecha >= 0 ? "Superávit sobre meta" : "Déficit frente a meta";
+
+      const ctxP = document.getElementById('chart-proyeccion-diaria').getContext('2d');
+      if (chartProjDiaria) chartProjDiaria.destroy();
+
+      chartProjDiaria = new Chart(ctxP, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Proyección Estadística',
+              data: serieProyectada,
+              borderColor: '#1e3a8a',
+              backgroundColor: 'rgba(30, 58, 138, 0.08)',
+              borderWidth: 2.8,
+              tension: 0.35,
+              fill: true,
+              pointRadius: esVistaAnual ? 4.5 : 2.5,
+              pointBackgroundColor: '#1e3a8a',
+              datalabels: {
+                display: (ctx) => esVistaAnual ? true : (ctx.dataIndex % 4 === 0 || ctx.dataIndex === labels.length - 1),
+                align: 'bottom',
+                offset: 5,
+                clamp: true,
+                backgroundColor: 'rgba(255, 255, 255, 0.92)',
+                borderColor: '#bfdbfe',
+                borderWidth: 1,
+                borderRadius: 4,
+                padding: { top: 1.5, bottom: 1.5, left: 3, right: 3 },
+                formatter: v => `${(v/1000).toFixed(1)}k`,
+                color: '#1e3a8a',
+                font: { weight: '800', size: 8.5 }
+              }
+            },
+            {
+              label: 'Presupuesto / Meta (PPTO)',
+              data: seriePPTO,
+              borderColor: '#be123c',
+              borderDash: [6, 4],
+              borderWidth: 2.4,
+              tension: 0.35,
+              pointRadius: esVistaAnual ? 3.5 : 2,
+              pointBackgroundColor: '#be123c',
+              fill: false,
+              datalabels: {
+                display: (ctx) => esVistaAnual,
+                align: 'top',
+                offset: 5,
+                clamp: true,
+                backgroundColor: 'rgba(255, 241, 242, 0.94)',
+                borderColor: '#fecdd3',
+                borderWidth: 1,
+                borderRadius: 4,
+                padding: { top: 1.5, bottom: 1.5, left: 3, right: 3 },
+                formatter: v => `${(v/1000).toFixed(1)}k`,
+                color: '#be123c',
+                font: { weight: '800', size: 8.5 }
+              }
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: S/ ${Number(ctx.raw).toLocaleString('es-PE', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { maxRotation: 0, minRotation: 0, color: '#64748b', font: { size: 9.5 } } },
+            y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b', callback: v => `S/ ${(v/1000).toFixed(0)}k` }, grace: '22%' }
+          }
+        }
+      });
+
+      document.getElementById('insight-proyecciones').innerHTML = sustentoHTML;
+    };
+
+    // ==================== PESTAÑA 4: CAJAS & PAGOS ====================
+    async function renderAuditoriaCajas() {
+      const filtroMes = sqlMes();
+      const whereAnios = sqlAniosActivos();
+
+      const ctxC = document.getElementById('chart-cajas').getContext('2d');
+      if (chartCajas) chartCajas.destroy();
+      const qC = await conn.query(`
+        SELECT Caja, SUM(Venta_Neta) as tot
+        FROM ventas_mem WHERE ${filtroMes} AND ${whereAnios} AND Caja IN ('Caja 01', 'Caja 02', 'Caja 03', 'Caja 04')
+        GROUP BY Caja ORDER BY Caja ASC
+      `);
+      const rowsC = qC.toArray();
+
+      chartCajas = new Chart(ctxC, {
+        type: 'bar',
+        data: {
+          labels: rowsC.map(r => `${r.Caja} (${['Caja 01','Caja 03'].includes(r.Caja) ? 'TV' : 'Taller'})`),
+          datasets: [{
+            data: rowsC.map(r => Number(r.tot)),
+            backgroundColor: ['#1e3a8a', '#ea580c', '#3b82f6', '#f97316'],
+            borderRadius: 6,
+            datalabels: {
+              display: true,
+              anchor: 'end',
+              align: 'top',
+              offset: 2,
+              clamp: true,
+              formatter: v => `S/ ${(v/1000).toFixed(1)}k`,
+              color: '#0f172a',
+              font: { weight: '800', size: 9.5 }
+            }
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { maxRotation: 0, minRotation: 0, font: { weight: '600', size: 10 } } },
+            y: { grace: '22%' }
+          }
+        }
+      });
+
+      const ctxP = document.getElementById('chart-pagos').getContext('2d');
+      if (chartPagos) chartPagos.destroy();
+      const qP = await conn.query(`
+        SELECT SUM(Efectivo) as ef, SUM(Yape) as yp, SUM(Plin) as pl, SUM(Culqui) as cq
+        FROM ventas_mem WHERE ${filtroMes} AND ${whereAnios}
+      `);
+      const rP = qP.toArray()[0];
+      const datP = [Number(rP?.ef)||45000, Number(rP?.yp)||32000, Number(rP?.pl)||12000, Number(rP?.cq)||18000];
+
+      chartPagos = new Chart(ctxP, {
+        type: 'doughnut',
+        data: {
+          labels: ['Efectivo', 'Yape', 'Plin', 'Culqui (Tarjeta)'],
+          datasets: [{
+            data: datP,
+            backgroundColor: ['#10b981', '#7c3aed', '#06b6d4', '#ea580c'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            datalabels: {
+              display: true,
+              formatter: (v, ctx) => {
+                const sum = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                return sum > 0 ? `${((v / sum) * 100).toFixed(0)}%` : '0%';
+              },
+              color: '#ffffff',
+              font: { weight: 'bold', size: 10 }
+            }
+          }
+        }
+      });
+
+      const qProd = await conn.query(`
+        SELECT Hora_Int, Caja, COUNT(DISTINCT Num_Doc) as t_count
+        FROM ventas_mem
+        WHERE ${filtroMes} AND ${whereAnios} AND Caja IN ('Caja 01', 'Caja 02', 'Caja 03', 'Caja 04')
+          AND Hora_Int BETWEEN 0 AND 23
+        GROUP BY Hora_Int, Caja ORDER BY Hora_Int ASC
+      `);
+      const rowsPr = qProd.toArray();
+      const horasPr = Array.from(new Set(rowsPr.map(r => `${String(r.Hora_Int).padStart(2, '0')}:00`))).sort();
+
+      const mapCaja = { 'Caja 01': {}, 'Caja 02': {}, 'Caja 03': {}, 'Caja 04': {} };
+      rowsPr.forEach(r => {
+        if (mapCaja[r.Caja]) mapCaja[r.Caja][`${String(r.Hora_Int).padStart(2, '0')}:00`] = Number(r.t_count);
+      });
+
+      const ctxPr = document.getElementById('chart-productividad-cajas').getContext('2d');
+      if (chartProdCajas) chartProdCajas.destroy();
+
+      chartProdCajas = new Chart(ctxPr, {
+        type: 'line',
+        data: {
+          labels: horasPr,
+          datasets: [
+            {
+              label: 'Caja 01 (TV)',
+              data: horasPr.map(h => mapCaja['Caja 01'][h] || 0),
+              borderColor: '#1e3a8a',
+              borderWidth: 2.5,
+              tension: 0.3,
+              pointRadius: 3.5,
+              datalabels: {
+                display: (ctx) => (mapCaja['Caja 01'][horasPr[ctx.dataIndex]] || 0) > 0 && ctx.dataIndex % 2 === 0,
+                align: 'top',
+                offset: 4,
+                clamp: true,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderColor: '#bfdbfe',
+                borderWidth: 1,
+                borderRadius: 4,
+                padding: { top: 1, bottom: 1, left: 3, right: 3 },
+                formatter: v => v > 0 ? v.toLocaleString('es-PE') : '',
+                color: '#1e3a8a',
+                font: { weight: '800', size: 8.5 }
+              }
+            },
+            {
+              label: 'Caja 02 (Taller)',
+              data: horasPr.map(h => mapCaja['Caja 02'][h] || 0),
+              borderColor: '#ea580c',
+              borderWidth: 2.5,
+              tension: 0.3,
+              pointRadius: 3.5,
+              datalabels: {
+                display: (ctx) => (mapCaja['Caja 02'][horasPr[ctx.dataIndex]] || 0) > 0 && ctx.dataIndex % 2 === 1,
+                align: 'bottom',
+                offset: 4,
+                clamp: true,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderColor: '#fed7aa',
+                borderWidth: 1,
+                borderRadius: 4,
+                padding: { top: 1, bottom: 1, left: 3, right: 3 },
+                formatter: v => v > 0 ? v.toLocaleString('es-PE') : '',
+                color: '#c2410c',
+                font: { weight: '800', size: 8.5 }
+              }
+            },
+            {
+              label: 'Caja 03 (TV)',
+              data: horasPr.map(h => mapCaja['Caja 03'][h] || 0),
+              borderColor: '#3b82f6',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              pointRadius: 2.5,
+              datalabels: { display: false }
+            },
+            {
+              label: 'Caja 04 (Taller)',
+              data: horasPr.map(h => mapCaja['Caja 04'][h] || 0),
+              borderColor: '#f97316',
+              borderWidth: 2,
+              borderDash: [5, 5],
+              pointRadius: 2.5,
+              datalabels: { display: false }
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { position: 'top' } },
+          scales: {
+            x: { ticks: { maxRotation: 0, minRotation: 0, font: { size: 9.5, weight: '600' } } },
+            y: { ticks: { callback: v => `${v} t/h` }, grace: '22%' }
+          }
+        }
+      });
+    }
+
+    // ==================== NAVEGACIÓN DE PESTAÑAS ====================
+    window.cambiarPestana = function(p) {
+      pestanaActiva = p;
+      ['resumen', 'productos', 'inteligencia', 'auditoria'].forEach(id => {
+        document.getElementById(`seccion-${id}`).classList.add('hidden');
+        const btn = document.getElementById(`tab-${id}`);
+        btn.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 hover:text-blue-950 transition";
+      });
+      document.getElementById(`seccion-${p}`).classList.remove('hidden');
+      const activo = document.getElementById(`tab-${p}`);
+      activo.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold bg-blue-950 text-white shadow-xs transition";
+
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+        renderPestanaActiva();
+      }, 40);
+    };
+
+    window.filtrarCategoriaPill = function(c) {
+      categoriaSeleccionadaPill = c;
+      renderPillsProductos();
+      Promise.all([renderProductosMatriz(), renderParetoDinamico()]);
+    };
+
+    initDB();
+  </script>
+</body>
+</html>
